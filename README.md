@@ -21,14 +21,14 @@ MyBMAD Dashboard connects to your GitHub repositories, reads the BMAD project st
 
 ---
 
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/e4dd22f5-98e0-4d68-9b78-b77c43a64252" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/6a9b0db7-d89c-47c8-ae7c-a78bbcc42e3d" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/033a58c0-a9d9-4566-b4ca-020fc61e3037" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/6ca41451-c0d3-4cec-9199-37903d2f9e99" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/de9dd538-8e3e-401c-9329-cbb5b9ffb2da" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/dd9376ed-0702-4eb8-a581-b73bdf64b2c6" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/0bfccaf1-986d-4720-bcaa-7449c019ca92" />
-<img width="1720" height="1297" alt="image" src="https://github.com/user-attachments/assets/97727628-bfbb-4856-be21-cb29553d248d" />
+<img width="1720" alt="Screenshot 1" src="./docs/screen1.png" />
+<img width="1720" alt="Screenshot 2" src="./docs/screen2.png" />
+<img width="1720" alt="Screenshot 3" src="./docs/screen3.png" />
+<img width="1720" alt="Screenshot 4" src="./docs/screen4.png" />
+<img width="1720" alt="Screenshot 5" src="./docs/screen5.png" />
+<img width="1720" alt="Screenshot 6" src="./docs/screen6.png" />
+<img width="1720" alt="Screenshot 7" src="./docs/screen7.png" />
+<img width="1720" alt="Screenshot 8" src="./docs/screen8.png" />
 
 
 ## Tech Stack
