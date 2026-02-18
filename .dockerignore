@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+
+# Fichiers d'environnement — ne pas copier les secrets dans l'image
+.env
+.env.*
+
+# Artefacts de projet non necessaires dans l'image
+_bmad-output
+_bmad
+docs
+
+# Fichiers markdown — non necessaires dans l'image de production
+# Seul README.md est conserve
+*.md
+!README.md

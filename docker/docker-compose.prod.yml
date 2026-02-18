@@ -1,0 +1,93 @@
+# Docker Compose de production — my-bmad
+# Utilisation : docker compose -f docker/docker-compose.prod.yml up -d
+#
+# DEUX fichiers d'environnement sont necessaires :
+#
+# 1. .env (racine du projet) — Interpolation Docker Compose (parse time)
+#    Contient : DOMAIN, ACME_EMAIL, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+#    Ces variables sont substituees par Docker Compose dans ce fichier (syntaxe ${VAR})
+#
+# 2. .env.local (racine du projet) — Variables runtime du container Next.js
+#    Contient : BETTER_AUTH_SECRET, BETTER_AUTH_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+#    Ces variables sont injectees dans le container my-bmad via env_file
+
+services:
+  # Reverse proxy avec HTTPS automatique via Let's Encrypt
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    command:
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL must be set in .env}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - web
+
+  # Application Next.js
+  my-bmad:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env.local
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER must be set in .env}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB must be set in .env}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      - traefik.http.routers.bmad.rule=Host(`${DOMAIN:?DOMAIN must be set in .env}`)
+      - traefik.http.routers.bmad.entrypoints=websecure
+      - traefik.http.routers.bmad.tls.certresolver=letsencrypt
+      - traefik.http.services.bmad.loadbalancer.server.port=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+
+  # Base de donnees PostgreSQL (communication interne uniquement)
+  postgres:
+    image: postgres:17.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+    networks:
+      - internal
+
+# Reseau web : Traefik + App (communication proxy)
+# Reseau internal : App + PostgreSQL (isolation base de donnees)
+# Prerequis : creer le reseau web avant le premier lancement :
+#   docker network create web
+networks:
+  web:
+    external: true
+  internal:
+    internal: true
+
+volumes:
+  postgres_data:
+  letsencrypt:
