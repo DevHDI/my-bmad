@@ -1,18 +1,18 @@
-# Docker Compose de production — my-bmad
-# Utilisation : docker compose -f docker/docker-compose.prod.yml up -d
+# Production Docker Compose — my-bmad
+# Usage: docker compose -f docker/docker-compose.prod.yml up -d
 #
-# DEUX fichiers d'environnement sont necessaires :
+# TWO environment files are required:
 #
-# 1. .env (racine du projet) — Interpolation Docker Compose (parse time)
-#    Contient : DOMAIN, ACME_EMAIL, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
-#    Ces variables sont substituees par Docker Compose dans ce fichier (syntaxe ${VAR})
+# 1. .env (project root) — Docker Compose interpolation (parse time)
+#    Contains: DOMAIN, ACME_EMAIL, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+#    These variables are substituted by Docker Compose in this file (${VAR} syntax)
 #
-# 2. .env.local (racine du projet) — Variables runtime du container Next.js
-#    Contient : BETTER_AUTH_SECRET, BETTER_AUTH_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
-#    Ces variables sont injectees dans le container my-bmad via env_file
+# 2. .env.local (project root) — Runtime variables for the Next.js container
+#    Contains: BETTER_AUTH_SECRET, BETTER_AUTH_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+#    These variables are injected into the my-bmad container via env_file
 
 services:
-  # Reverse proxy avec HTTPS automatique via Let's Encrypt
+  # Reverse proxy with automatic HTTPS via Let's Encrypt
   traefik:
     image: traefik:v3.3
     restart: unless-stopped
@@ -36,7 +36,7 @@ services:
     networks:
       - web
 
-  # Application Next.js
+  # Next.js application
   my-bmad:
     build:
       context: ..
@@ -60,7 +60,7 @@ services:
       - web
       - internal
 
-  # Base de donnees PostgreSQL (communication interne uniquement)
+  # PostgreSQL database (internal communication only)
   postgres:
     image: postgres:17.4-alpine
     restart: unless-stopped
@@ -78,9 +78,9 @@ services:
     networks:
       - internal
 
-# Reseau web : Traefik + App (communication proxy)
-# Reseau internal : App + PostgreSQL (isolation base de donnees)
-# Prerequis : creer le reseau web avant le premier lancement :
+# web network:      Traefik + App (proxy communication)
+# internal network: App + PostgreSQL (database isolation)
+# Prerequisite: create the web network before first launch:
 #   docker network create web
 networks:
   web:

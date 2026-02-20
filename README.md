@@ -73,26 +73,82 @@ pnpm install
 
 ### 3. Set up environment variables
 
+**Quick method** — auto-generates secrets for you:
+
+```bash
+bash scripts/setup.sh
+```
+
+**Manual method** — copy the template and edit by hand:
+
 ```bash
 cp .env.example .env
 ```
 
-Then edit `.env` and fill in your values. At minimum you need:
+Then fill in each variable as described below.
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `BETTER_AUTH_SECRET` | Random secret — generate with `openssl rand -base64 32` |
-| `BETTER_AUTH_URL` | App base URL (e.g. `http://localhost:3000`) |
-| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
-| `GITHUB_PAT` | GitHub Personal Access Token (optional) |
-| `REVALIDATE_SECRET` | Random secret for cache revalidation endpoint |
+#### Database (`DATABASE_URL`)
 
-> **GitHub OAuth App setup:**
-> - Go to [github.com/settings/developers](https://github.com/settings/developers) → New OAuth App
-> - Homepage URL: `http://localhost:3000`
-> - Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
+If you use the included Docker Compose (step 4), the default value works out of the box:
+
+```
+DATABASE_URL=postgresql://bmad:bmad_dev_password@localhost:5433/bmad_dashboard
+```
+
+The format is `postgresql://<user>:<password>@<host>:<port>/<database>`. Adjust if you use your own PostgreSQL instance.
+
+#### Auth secret (`BETTER_AUTH_SECRET`)
+
+A random string used to sign session tokens. Generate one with:
+
+```bash
+openssl rand -base64 32
+```
+
+Paste the output as the value. Any long random string works.
+
+#### App URL (`BETTER_AUTH_URL`)
+
+The base URL where your app runs. For local development:
+
+```
+BETTER_AUTH_URL=http://localhost:3000
+```
+
+In production, set this to your real domain (e.g. `https://mybmad.example.com`).
+
+#### Revalidation secret (`REVALIDATE_SECRET`)
+
+A random string to protect the cache revalidation API endpoint. Generate one with:
+
+```bash
+openssl rand -hex 32
+```
+
+#### GitHub OAuth App (`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`)
+
+Required for "Login with GitHub". Follow these steps:
+
+1. Go to [github.com/settings/developers](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Fill in the form:
+   - **Application name:** `MyBMAD` (or anything you like)
+   - **Homepage URL:** `http://localhost:3000`
+   - **Authorization callback URL:** `http://localhost:3000/api/auth/callback/github`
+4. Click **Register application**
+5. Copy the **Client ID** into `GITHUB_CLIENT_ID`
+6. Click **Generate a new client secret**, copy it into `GITHUB_CLIENT_SECRET`
+
+#### GitHub Personal Access Token (`GITHUB_PAT`) — optional
+
+Without a PAT, the GitHub API allows only 60 requests/hour. With one, you get 5,000/hour. Recommended if you import multiple repositories.
+
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click **Generate new token (classic)**
+3. Select scopes:
+   - `public_repo` — for public repositories only
+   - `repo` — if you also need private repositories
+4. Copy the token into `GITHUB_PAT`
 
 ### 4. Start PostgreSQL with Docker Compose (optional)
 
