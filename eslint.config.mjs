@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Third-party vendored components
+    "src/components/animate-ui/**",
   ]),
 ]);
 

@@ -46,6 +46,7 @@ export function StatsCard({
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <p className="text-4xl font-bold">{value}</p>
             {description && (
               <p className="text-sm text-muted-foreground">{description}</p>

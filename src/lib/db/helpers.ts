@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { auth } from "@/lib/auth/auth";
-import type { Session } from "@/lib/auth/auth";
+
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db/client";
 import type { RepoConfig, ActionResult, UserRole } from "@/lib/types";

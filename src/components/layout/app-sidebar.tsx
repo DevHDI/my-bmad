@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -50,18 +50,19 @@ export function AppSidebar({ repos, userRole }: AppSidebarProps) {
   const pathname = usePathname();
 
   // Track which repo key is expanded — only one at a time
-  const activeRepoKey = repos.find((r) =>
-    pathname.startsWith(`/repo/${r.owner}/${r.name}`)
+  const activeRepoKey = useMemo(
+    () => repos.find((r) => pathname.startsWith(`/repo/${r.owner}/${r.name}`)),
+    [repos, pathname]
   );
-  const [openRepo, setOpenRepo] = useState<string | null>(
-    activeRepoKey ? `${activeRepoKey.owner}/${activeRepoKey.name}` : null
-  );
+  const derivedOpenRepo = activeRepoKey
+    ? `${activeRepoKey.owner}/${activeRepoKey.name}`
+    : null;
+  const [openRepo, setOpenRepo] = useState<string | null>(derivedOpenRepo);
 
   // Sync with route changes (e.g. navigating via links outside sidebar)
-  useEffect(() => {
-    const key = activeRepoKey ? `${activeRepoKey.owner}/${activeRepoKey.name}` : null;
-    if (key) setOpenRepo(key);
-  }, [activeRepoKey?.owner, activeRepoKey?.name]);
+  if (derivedOpenRepo && derivedOpenRepo !== openRepo) {
+    setOpenRepo(derivedOpenRepo);
+  }
 
   return (
     <Sidebar variant="floating" collapsible="icon">

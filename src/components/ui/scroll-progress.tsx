@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion, useScroll, useSpring, useMotionValueEvent } from "motion/react";
@@ -20,10 +20,15 @@ export function ScrollProgress({ className }: ScrollProgressProps) {
   const [visible, setVisible] = useState(false);
 
   // Reset on route change
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     window.scrollTo(0, 0);
     scaleX.set(0);
-    setVisible(false);
+    startTransition(() => setVisible(false));
   }, [pathname, scaleX]);
 
   // Only show when user has actually scrolled
