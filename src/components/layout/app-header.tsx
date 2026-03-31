@@ -85,7 +85,13 @@ export function AppHeader() {
         ))}
       </nav>
       <AnimatedThemeToggler className="ml-auto rounded-full p-2 hover:bg-accent shrink-0" />
-      <GitHubStarsButton username="DevHDI" repo="my-bmad" variant="ghost" size="sm" />
+      <GitHubStarsButton
+        username="DevHDI"
+        repo="my-bmad"
+        variant="ghost"
+        size="sm"
+        onClick={() => window.open("https://github.com/DevHDI/my-bmad", "_blank", "noopener,noreferrer")}
+      />
       <ScrollProgress />
     </header>
   );
