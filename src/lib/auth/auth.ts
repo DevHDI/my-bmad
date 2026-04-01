@@ -2,14 +2,16 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@/lib/db/client";
 
-if (!process.env.BETTER_AUTH_SECRET) {
-  console.warn("Missing BETTER_AUTH_SECRET — auth token signing will fail");
-}
-if (!process.env.GITHUB_CLIENT_ID) {
-  console.warn("Missing GITHUB_CLIENT_ID — GitHub OAuth will not work");
-}
-if (!process.env.GITHUB_CLIENT_SECRET) {
-  console.warn("Missing GITHUB_CLIENT_SECRET — GitHub OAuth will not work");
+if (process.env.NEXT_PHASE !== "phase-production-build") {
+  if (!process.env.BETTER_AUTH_SECRET) {
+    console.warn("Missing BETTER_AUTH_SECRET — auth token signing will fail");
+  }
+  if (!process.env.GITHUB_CLIENT_ID) {
+    console.warn("Missing GITHUB_CLIENT_ID — GitHub OAuth will not work");
+  }
+  if (!process.env.GITHUB_CLIENT_SECRET) {
+    console.warn("Missing GITHUB_CLIENT_SECRET — GitHub OAuth will not work");
+  }
 }
 
 export const auth = betterAuth({
