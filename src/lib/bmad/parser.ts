@@ -6,6 +6,7 @@ import {
 import { BmadProject, ParseErrorEntry } from "./types";
 import { parseSprintStatus } from "./parse-sprint-status";
 import { parseEpics } from "./parse-epics";
+import { parseEpicFile } from "./parse-epic-file";
 import { parseStory } from "./parse-story";
 import { correlate, computeProjectStats } from "./correlate";
 import { buildFileTree } from "./utils";
@@ -52,11 +53,22 @@ export async function getBmadProject(
       p.endsWith("sprint-status.yaml")
   );
 
+  // Auto-detect epics source: single file first, then directory fallback
   const epicsPath = bmadPaths.find(
     (p) =>
       p.includes(PLANNING) &&
       (p.endsWith("epics.md") || p.endsWith("epic.md"))
   );
+
+  const EPICS_DIR = PLANNING + "/epics";
+  const epicFilePaths = epicsPath
+    ? [] // single file wins — skip directory
+    : bmadPaths.filter((p) => {
+        if (!p.includes(EPICS_DIR + "/") || !p.endsWith(".md")) return false;
+        const filename = p.split("/").pop() || "";
+        // Match: epic-1.md, epic_1.md, 1-title.md, 1.md, epic-1-title.md
+        return /^(?:epic[_-]?)?\d+/i.test(filename);
+      });
 
   const storyPaths = bmadPaths.filter((p) => {
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
@@ -86,6 +98,15 @@ export async function getBmadProject(
     fetches.push(
       fetchContent(epicsPath).then((content) => ({
         key: "epics",
+        content,
+      }))
+    );
+  }
+
+  for (const ep of epicFilePaths) {
+    fetches.push(
+      fetchContent(ep).then((content) => ({
+        key: `epic-file:${ep}`,
         content,
       }))
     );
@@ -126,6 +147,16 @@ export async function getBmadProject(
       rawEpics = result.epics;
       if (result.error) {
         parseErrors.push({ file: epicsPath!, error: result.error, contentType: "epic" });
+      }
+    } else if (key.startsWith("epic-file:")) {
+      totalFiles++;
+      const filePath = key.replace("epic-file:", "");
+      const filename = filePath.split("/").pop() || "";
+      const epic = parseEpicFile(content, filename);
+      if (epic) {
+        rawEpics.push(epic);
+      } else {
+        parseErrors.push({ file: filePath, error: "Failed to parse individual epic file. Check format (frontmatter or heading).", contentType: "epic" });
       }
     } else if (key.startsWith("story:")) {
       totalFiles++;
