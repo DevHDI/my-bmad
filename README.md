@@ -13,8 +13,10 @@ MyBMAD Dashboard connects to your GitHub repositories, reads the BMAD project st
 **Key features:**
 - Import any GitHub repository that follows the BMAD structure
 - Visualize epic progress and story status at a glance
+- Support for chunked epics (individual files in `epics/` directory) as well as a single `epics.md`
 - Browse BMAD docs and planning artifacts directly in the app
 - Track sprint status and velocity metrics
+- Repo settings modal to switch branches directly from the UI
 - GitHub OAuth authentication (login with your GitHub account)
 - Multi-user support with role management (admin / user)
 - Self-hostable with Docker and automatic TLS via Traefik
