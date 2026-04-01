@@ -17,8 +17,11 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# DATABASE_URL factice pour prisma generate (build time uniquement, disparait apres le build)
+# Valeurs factices pour le build uniquement (disparaissent apres le build)
+# Evite les warnings Better Auth et Prisma pendant next build
 ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+ARG BETTER_AUTH_SECRET="build-time-placeholder-secret-not-used-at-runtime"
+ARG BETTER_AUTH_URL="http://localhost:3000"
 RUN pnpm db:generate
 RUN pnpm build
 
