@@ -40,10 +40,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copie explicite du client Prisma genere (le tracing standalone peut manquer les chemins custom)
 COPY --from=builder --chown=nextjs:nodejs /app/src/generated ./src/generated
-# Prisma schema + migrations + CLI for runtime migrate deploy
+# Prisma schema + migrations + config for runtime migrate deploy
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+# Prisma CLI for runtime migrations — installed globally to avoid pnpm symlink issues
+RUN npm install -g prisma@6.19.2
 
 USER nextjs
 
@@ -55,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
+CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
