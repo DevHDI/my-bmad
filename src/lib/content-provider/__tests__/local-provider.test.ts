@@ -44,25 +44,25 @@ describe("LocalProvider", () => {
 
   describe("getTree()", () => {
     it("returns the correct list of files recursively", async () => {
-      await writeFile("a.txt");
-      await writeFile("sub/b.txt");
-      await writeFile("sub/deep/c.txt");
+      await writeFile("_bmad-output/a.txt");
+      await writeFile("_bmad-output/sub/b.txt");
+      await writeFile("_bmad-output/sub/deep/c.txt");
 
       const provider = new LocalProvider(tmpDir);
       const tree = await provider.getTree();
 
-      expect(tree.paths).toContain("a.txt");
-      expect(tree.paths).toContain(path.join("sub", "b.txt"));
-      expect(tree.paths).toContain(path.join("sub", "deep", "c.txt"));
+      expect(tree.paths).toContain(path.join("_bmad-output", "a.txt"));
+      expect(tree.paths).toContain(path.join("_bmad-output", "sub", "b.txt"));
+      expect(tree.paths).toContain(path.join("_bmad-output", "sub", "deep", "c.txt"));
     });
 
     it("returns only files, not directories", async () => {
-      await writeFile("sub/file.txt");
+      await writeFile("_bmad-output/file.txt");
 
       const provider = new LocalProvider(tmpDir);
       const tree = await provider.getTree();
 
-      expect(tree.paths).toEqual([path.join("sub", "file.txt")]);
+      expect(tree.paths).toEqual([path.join("_bmad-output", "file.txt")]);
     });
 
     it("returns empty list for empty directory", async () => {
@@ -88,7 +88,7 @@ describe("LocalProvider", () => {
 
     it("respects maxFileCount limit", async () => {
       for (let i = 0; i < 5; i++) {
-        await writeFile(`file${i}.txt`);
+        await writeFile(`_bmad/file${i}.txt`);
       }
 
       const provider = new LocalProvider(tmpDir, { maxFileCount: 3 });
@@ -96,14 +96,15 @@ describe("LocalProvider", () => {
     });
 
     it("ignores files beyond maxDepth", async () => {
-      await writeFile("a.txt");
-      await writeFile("d1/d2/d3/deep.txt");
+      await writeFile("_bmad/a.txt");
+      await writeFile("_bmad/d1/d2/d3/deep.txt");
 
-      const provider = new LocalProvider(tmpDir, { maxDepth: 1 });
+      // maxDepth 2 means: root(0) → _bmad(1) → a.txt OK, d1(2) → but d2/d3 beyond
+      const provider = new LocalProvider(tmpDir, { maxDepth: 2 });
       const tree = await provider.getTree();
 
-      expect(tree.paths).toContain("a.txt");
-      expect(tree.paths).not.toContain(path.join("d1", "d2", "d3", "deep.txt"));
+      expect(tree.paths).toContain(path.join("_bmad", "a.txt"));
+      expect(tree.paths).not.toContain(path.join("_bmad", "d1", "d2", "d3", "deep.txt"));
     });
   });
 

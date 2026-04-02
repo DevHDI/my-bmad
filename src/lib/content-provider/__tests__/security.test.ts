@@ -9,9 +9,9 @@ let tmpDir: string;
 beforeEach(async () => {
   process.env.ENABLE_LOCAL_FS = "true";
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sec-test-"));
-  // Create a file inside the jail for valid tests
-  await fs.mkdir(path.join(tmpDir, "sub"), { recursive: true });
-  await fs.writeFile(path.join(tmpDir, "sub", "safe.txt"), "safe");
+  // Create a file inside the jail for valid tests (under _bmad for getTree scans)
+  await fs.mkdir(path.join(tmpDir, "_bmad", "sub"), { recursive: true });
+  await fs.writeFile(path.join(tmpDir, "_bmad", "sub", "safe.txt"), "safe");
 });
 
 afterEach(async () => {
@@ -97,13 +97,13 @@ describe("LocalProvider Security", () => {
       const outsideFile = path.join(os.tmpdir(), "outside-secret2.txt");
       await fs.writeFile(outsideFile, "secret");
 
-      await fs.symlink(outsideFile, path.join(tmpDir, "linked.txt"));
+      await fs.symlink(outsideFile, path.join(tmpDir, "_bmad", "linked.txt"));
 
       const provider = new LocalProvider(tmpDir);
       const tree = await provider.getTree();
 
-      expect(tree.paths).not.toContain("linked.txt");
-      expect(tree.paths).toContain(path.join("sub", "safe.txt"));
+      expect(tree.paths).not.toContain(path.join("_bmad", "linked.txt"));
+      expect(tree.paths).toContain(path.join("_bmad", "sub", "safe.txt"));
 
       await fs.unlink(outsideFile);
     });
@@ -126,7 +126,7 @@ describe("LocalProvider Security", () => {
   describe("File count limit (F4)", () => {
     it("throws when file count exceeds maxFileCount", async () => {
       for (let i = 0; i < 10; i++) {
-        await fs.writeFile(path.join(tmpDir, `f${i}.txt`), "x");
+        await fs.writeFile(path.join(tmpDir, "_bmad", `f${i}.txt`), "x");
       }
 
       const provider = new LocalProvider(tmpDir, { maxFileCount: 5 });
@@ -138,17 +138,18 @@ describe("LocalProvider Security", () => {
 
   describe("Depth limit (F4)", () => {
     it("ignores files beyond maxDepth", async () => {
-      // Create file at depth 3
-      await fs.mkdir(path.join(tmpDir, "a", "b", "c"), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, "a", "b", "c", "deep.txt"), "x");
-      await fs.writeFile(path.join(tmpDir, "shallow.txt"), "x");
+      // Create file at depth 4 under _bmad (root=0, _bmad=1, a=2, b=3, c=4)
+      await fs.mkdir(path.join(tmpDir, "_bmad", "a", "b", "c"), { recursive: true });
+      await fs.writeFile(path.join(tmpDir, "_bmad", "a", "b", "c", "deep.txt"), "x");
+      await fs.writeFile(path.join(tmpDir, "_bmad", "shallow.txt"), "x");
 
-      const provider = new LocalProvider(tmpDir, { maxDepth: 1 });
+      // maxDepth 2: root(0) → _bmad(1) → shallow.txt OK, a(2) → but b/c beyond
+      const provider = new LocalProvider(tmpDir, { maxDepth: 2 });
       const tree = await provider.getTree();
 
-      expect(tree.paths).toContain("shallow.txt");
+      expect(tree.paths).toContain(path.join("_bmad", "shallow.txt"));
       expect(tree.paths).not.toContain(
-        path.join("a", "b", "c", "deep.txt")
+        path.join("_bmad", "a", "b", "c", "deep.txt")
       );
     });
   });

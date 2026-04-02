@@ -72,11 +72,26 @@ export class LocalProvider implements ContentProvider {
     ".now",
   ]);
 
+  /** Directories to scan for BMAD content. Only these (and their children) are walked. */
+  private static BMAD_DIRS = new Set(["_bmad", "_bmad-output"]);
+
   async getTree(): Promise<ContentProviderTree> {
     const paths: string[] = [];
     const rootDirectories: string[] = [];
     let fileCount = 0;
 
+    // Step 1: Read root-level entries to populate rootDirectories
+    const rootEntries = await fs.readdir(this.resolvedRoot, {
+      withFileTypes: true,
+    });
+    for (const dirent of rootEntries) {
+      if (dirent.isSymbolicLink()) continue;
+      if (dirent.isDirectory()) {
+        rootDirectories.push(dirent.name);
+      }
+    }
+
+    // Step 2: Only walk into BMAD directories for file paths
     const walk = async (dir: string, depth: number) => {
       const entries = await fs.readdir(dir, { withFileTypes: true });
 
@@ -87,11 +102,6 @@ export class LocalProvider implements ContentProvider {
         }
 
         if (dirent.isDirectory()) {
-          // Collect root-level directories (depth 0)
-          if (depth === 0) {
-            rootDirectories.push(dirent.name);
-          }
-
           // Skip ignored directories
           if (LocalProvider.IGNORED_DIRS.has(dirent.name)) {
             continue;
@@ -121,7 +131,11 @@ export class LocalProvider implements ContentProvider {
       }
     };
 
-    await walk(this.resolvedRoot, 0);
+    for (const dirName of rootDirectories) {
+      if (LocalProvider.BMAD_DIRS.has(dirName)) {
+        await walk(path.join(this.resolvedRoot, dirName), 1);
+      }
+    }
 
     return { paths, rootDirectories };
   }
