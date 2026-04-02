@@ -5,22 +5,18 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getPaginationRowModel,
-  flexRender,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+  DataGrid,
+  DataGridContainer,
+} from "@/components/reui/data-grid/data-grid";
+import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
+import { DataGridPagination } from "@/components/reui/data-grid/data-grid-pagination";
+import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { StoryDetail } from "@/lib/bmad/types";
 
 function TaskGauge({ completed, total }: { completed: number; total: number }) {
@@ -40,7 +36,6 @@ function TaskGauge({ completed, total }: { completed: number; total: number }) {
         height={svgH}
         viewBox={`0 0 ${size} ${svgH}`}
       >
-        {/* Background arc */}
         <path
           d={`M ${stroke / 2} ${svgH - 1} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${svgH - 1}`}
           fill="none"
@@ -49,7 +44,6 @@ function TaskGauge({ completed, total }: { completed: number; total: number }) {
           strokeLinecap="round"
           className="text-muted-foreground/20"
         />
-        {/* Filled arc */}
         {percent > 0 && (
           <path
             d={`M ${stroke / 2} ${svgH - 1} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${svgH - 1}`}
@@ -79,18 +73,12 @@ const columns: ColumnDef<StoryDetail>[] = [
       </span>
     ),
     size: 80,
+    enableSorting: false,
   },
   {
     accessorKey: "title",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Title
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
+      <DataGridColumnHeader column={column} title="Title" />
     ),
     cell: ({ row }) => (
       <span className="font-medium">{row.getValue("title")}</span>
@@ -99,28 +87,14 @@ const columns: ColumnDef<StoryDetail>[] = [
   {
     accessorKey: "status",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Status
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
+      <DataGridColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
   },
   {
     accessorKey: "epicTitle",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Epic
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
+      <DataGridColumnHeader column={column} title="Epic" />
     ),
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
@@ -137,6 +111,7 @@ const columns: ColumnDef<StoryDetail>[] = [
       return <TaskGauge completed={story.completedTasks} total={story.totalTasks} />;
     },
     size: 80,
+    enableSorting: false,
   },
 ];
 
@@ -159,81 +134,25 @@ export function StoriesTable({ stories }: StoriesTableProps) {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-border/50 overflow-hidden">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No story found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
+    <DataGrid
+      table={table}
+      recordCount={stories.length}
+      tableLayout={{
+        headerSticky: true,
+        headerBackground: true,
+        headerBorder: true,
+        rowBorder: true,
+      }}
+    >
+      <DataGridContainer>
+        <DataGridTable />
+      </DataGridContainer>
       {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              aria-label="Next page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <DataGridPagination
+          sizes={[10, 20, 50]}
+          info="{from} - {to} of {count}"
+        />
       )}
-    </div>
+    </DataGrid>
   );
 }

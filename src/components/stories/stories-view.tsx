@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { LayoutList, Columns3 } from "lucide-react";
-import { StoryFilters } from "./story-filters";
+import { StoryFilters, type Filter } from "./story-filters";
 import { StoriesTable } from "./stories-table";
 import { KanbanBoard } from "./kanban-board";
 import type { StoryDetail, Epic } from "@/lib/bmad/types";
@@ -16,8 +16,30 @@ interface StoriesViewProps {
 export function StoriesView({ stories, epics }: StoriesViewProps) {
   const [view, setView] = useState<"table" | "kanban">("table");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [epicFilter, setEpicFilter] = useState("all");
+  const [filters, setFilters] = useState<Filter<string>[]>([]);
+
+  const applyFilters = useCallback(
+    (story: StoryDetail) => {
+      for (const filter of filters) {
+        if (filter.field === "status" && filter.values.length > 0) {
+          const match =
+            filter.operator === "is_not" || filter.operator === "is_not_any_of"
+              ? !filter.values.includes(story.status)
+              : filter.values.includes(story.status);
+          if (!match) return false;
+        }
+        if (filter.field === "epicId" && filter.values.length > 0) {
+          const match =
+            filter.operator === "is_not" || filter.operator === "is_not_any_of"
+              ? !filter.values.includes(story.epicId)
+              : filter.values.includes(story.epicId);
+          if (!match) return false;
+        }
+      }
+      return true;
+    },
+    [filters]
+  );
 
   const filtered = useMemo(() => {
     return stories.filter((story) => {
@@ -30,15 +52,9 @@ export function StoriesView({ stories, epics }: StoriesViewProps) {
           return false;
         }
       }
-      if (statusFilter !== "all" && story.status !== statusFilter) {
-        return false;
-      }
-      if (epicFilter !== "all" && story.epicId !== epicFilter) {
-        return false;
-      }
-      return true;
+      return applyFilters(story);
     });
-  }, [stories, search, statusFilter, epicFilter]);
+  }, [stories, search, applyFilters]);
 
   return (
     <div className="space-y-4" role="region" aria-label="Stories list">
@@ -46,10 +62,8 @@ export function StoriesView({ stories, epics }: StoriesViewProps) {
         <StoryFilters
           search={search}
           onSearchChange={setSearch}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          epicFilter={epicFilter}
-          onEpicFilterChange={setEpicFilter}
+          filters={filters}
+          onFiltersChange={setFilters}
           epics={epics}
         />
         <div className="flex gap-1 border rounded-lg p-1" role="group" aria-label="Display mode">

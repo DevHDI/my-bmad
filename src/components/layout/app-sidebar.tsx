@@ -14,6 +14,7 @@ import {
   BookOpen,
   FileText,
   Shield,
+  PlusIcon,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
 import {
@@ -31,6 +32,7 @@ import {
   SidebarMenuSubButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { AddRepoDialog } from "@/components/layout/add-repo-dialog";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { RepoConfig } from "@/lib/types";
@@ -100,16 +102,7 @@ export function AppSidebar({ repos, userRole, localFsEnabled, githubEnabled }: A
         </SidebarGroup>
 
         <SidebarGroup>
-          <div className="flex items-center justify-between">
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <div className="group-data-[collapsible=icon]:hidden pr-2">
-              <AddRepoDialog
-                importedRepos={repos}
-                localFsEnabled={localFsEnabled}
-                githubEnabled={githubEnabled}
-              />
-            </div>
-          </div>
+          <SidebarGroupLabel>Projects</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {repos.map((repo) => {
@@ -195,8 +188,23 @@ export function AppSidebar({ repos, userRole, localFsEnabled, githubEnabled }: A
           </SidebarMenu>
         </SidebarFooter>
       )}
-      <SidebarFooter className="border-t border-border/50">
-        <UserMenu />
+      <SidebarFooter>
+        <div className="px-1 pb-2 group-data-[collapsible=icon]:hidden">
+          <AddRepoDialog
+            importedRepos={repos}
+            localFsEnabled={localFsEnabled}
+            githubEnabled={githubEnabled}
+            trigger={
+              <Button variant="outline" size="lg" className="w-full">
+                <PlusIcon aria-hidden="true" />
+                Add New Project
+              </Button>
+            }
+          />
+        </div>
+        <div className="border-t border-border/50 pt-2">
+          <UserMenu />
+        </div>
         <div className="border-t border-border/50 pt-2 pb-1 text-center group-data-[collapsible=icon]:hidden">
           <p className="text-xs text-muted-foreground">Made with ❤️ by Hichem</p>
         </div>

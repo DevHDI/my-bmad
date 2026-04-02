@@ -21,6 +21,7 @@
   },
   "registries": {
     "@magicui": "https://magicui.design/r/{name}",
-    "@animate-ui": "https://animate-ui.com/r/{name}.json"
+    "@animate-ui": "https://animate-ui.com/r/{name}.json",
+    "@reui": "https://reui.io/r/{style}/{name}.json"
   }
 }

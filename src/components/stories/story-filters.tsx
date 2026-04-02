@@ -1,35 +1,57 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Search } from "lucide-react";
+import {
+  Filters,
+  createFilter,
+  type Filter,
+  type FilterFieldConfig,
+} from "@/components/reui/filters";
+import { Input } from "@/components/ui/input";
 import type { Epic } from "@/lib/bmad/types";
+
+const STATUS_OPTIONS = [
+  { value: "done", label: "Done" },
+  { value: "in-progress", label: "In Progress" },
+  { value: "review", label: "In Review" },
+  { value: "blocked", label: "Blocked" },
+  { value: "ready-for-dev", label: "Ready for Dev" },
+  { value: "backlog", label: "Backlog" },
+];
 
 interface StoryFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  statusFilter: string;
-  onStatusFilterChange: (value: string) => void;
-  epicFilter: string;
-  onEpicFilterChange: (value: string) => void;
+  filters: Filter<string>[];
+  onFiltersChange: (filters: Filter<string>[]) => void;
   epics: Epic[];
 }
 
 export function StoryFilters({
   search,
   onSearchChange,
-  statusFilter,
-  onStatusFilterChange,
-  epicFilter,
-  onEpicFilterChange,
+  filters,
+  onFiltersChange,
   epics,
 }: StoryFiltersProps) {
+  const fields: FilterFieldConfig<string>[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "multiselect",
+      options: STATUS_OPTIONS,
+    },
+    {
+      key: "epicId",
+      label: "Epic",
+      type: "select",
+      options: epics.map((e) => ({
+        value: e.id,
+        label: `Epic ${e.id}: ${e.title}`,
+      })),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="relative flex-1">
@@ -41,33 +63,14 @@ export function StoryFilters({
           className="pl-9"
         />
       </div>
-      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="All statuses" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          <SelectItem value="done">Done</SelectItem>
-          <SelectItem value="in-progress">In Progress</SelectItem>
-          <SelectItem value="review">In Review</SelectItem>
-          <SelectItem value="blocked">Blocked</SelectItem>
-          <SelectItem value="ready-for-dev">Ready for Dev</SelectItem>
-          <SelectItem value="backlog">Backlog</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select value={epicFilter} onValueChange={onEpicFilterChange}>
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="All epics" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All epics</SelectItem>
-          {epics.map((epic) => (
-            <SelectItem key={epic.id} value={epic.id}>
-              Epic {epic.id}: {epic.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Filters
+        filters={filters}
+        fields={fields}
+        onChange={onFiltersChange}
+        size="sm"
+      />
     </div>
   );
 }
+
+export { createFilter, type Filter };
