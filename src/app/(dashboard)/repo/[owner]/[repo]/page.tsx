@@ -10,6 +10,7 @@ import { GitBranch, Clock, FolderOpen } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 import { DeleteRepoButton } from "@/components/shared/delete-repo-button";
 import { RefreshRepoButton } from "@/components/shared/refresh-repo-button";
+import { RepoSettingsModal } from "@/components/shared/repo-settings-modal";
 import {
   getAuthenticatedUserId,
   getAuthenticatedRepoConfig,
@@ -64,6 +65,13 @@ export default async function RepoOverviewPage({ params }: RepoPageProps) {
               {project.displayName}
             </h1>
             <RefreshRepoButton owner={owner} name={repoName} />
+            {!isLocal && (
+              <RepoSettingsModal
+                owner={owner}
+                name={repoName}
+                currentBranch={project.branch}
+              />
+            )}
             <DeleteRepoButton
               owner={owner}
               name={repoName}

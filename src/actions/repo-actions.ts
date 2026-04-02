@@ -400,16 +400,13 @@ async function refreshGitHubRepo(
 
   revalidateTag(repoTag(input.owner, input.name), "default");
 
-  const { data: ghRepo } = await octokit.rest.repos.get({
-    owner: input.owner,
-    repo: input.name,
-  });
-  const latestBranch = ghRepo.default_branch ?? repoConfig.branch;
+  // Use the branch already configured for this repo — don't override it
+  const syncBranch = repoConfig.branch;
 
   const { data: tree } = await octokit.rest.git.getTree({
     owner: input.owner,
     repo: input.name,
-    tree_sha: latestBranch,
+    tree_sha: syncBranch,
     recursive: "1",
   });
 
@@ -420,7 +417,7 @@ async function refreshGitHubRepo(
   const now = new Date();
   await prisma.repo.update({
     where: { id: repoConfig.id },
-    data: { lastSyncedAt: now, branch: latestBranch, totalFiles },
+    data: { lastSyncedAt: now, totalFiles },
   });
 
   return { success: true, data: { totalFiles, lastSyncedAt: now.toISOString() } };
@@ -813,5 +810,93 @@ export async function importLocalFolder(input: {
       return { success: false, error: sanitizeError(error, "LOCAL_DISABLED"), code: "LOCAL_DISABLED" };
     }
     return { success: false, error: sanitizeError(error, "FS_ERROR"), code: "FS_ERROR" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Branch management (GitHub-only)
+// ---------------------------------------------------------------------------
+
+/**
+ * List available branches for a repo from GitHub.
+ * F21: Returns error for local repos (no branch concept).
+ */
+export async function listRepoBranches(input: {
+  owner: string;
+  name: string;
+}): Promise<ActionResult<string[]>> {
+  const authResult = await getAuthenticatedOctokit();
+  if (!authResult.success) return authResult;
+
+  const { octokit, userId } = authResult.data;
+  const parsed = z.object({ owner: z.string(), name: z.string() }).safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input", code: "VALIDATION" };
+  }
+
+  // F21: Guard — local repos don't have branches
+  const repoConfig = await prisma.repo.findFirst({
+    where: { userId, owner: parsed.data.owner, name: parsed.data.name },
+    select: { sourceType: true },
+  });
+  if (repoConfig?.sourceType === "local") {
+    return { success: false, error: "Branch management is not available for local projects", code: "NOT_APPLICABLE" };
+  }
+
+  try {
+    const branches = await octokit.paginate(
+      octokit.rest.repos.listBranches,
+      { owner: parsed.data.owner, repo: parsed.data.name, per_page: 100 },
+    );
+    return { success: true, data: branches.map((b) => b.name) };
+  } catch (error: unknown) {
+    return { success: false, error: sanitizeError(error, "GITHUB_ERROR"), code: "GITHUB_ERROR" };
+  }
+}
+
+/**
+ * Update the tracked branch for a repo.
+ * F21: Returns error for local repos.
+ */
+export async function updateRepoBranch(input: {
+  owner: string;
+  name: string;
+  branch: string;
+}): Promise<ActionResult<{ branch: string }>> {
+  const authResult = await getAuthenticatedOctokit();
+  if (!authResult.success) return authResult;
+
+  const { userId } = authResult.data;
+  const parsed = z
+    .object({ owner: z.string(), name: z.string(), branch: z.string().min(1) })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input", code: "VALIDATION" };
+  }
+
+  // F21: Guard — local repos don't have branches
+  const repoConfig = await prisma.repo.findFirst({
+    where: { userId, owner: parsed.data.owner, name: parsed.data.name },
+    select: { id: true, sourceType: true },
+  });
+  if (!repoConfig) {
+    return { success: false, error: "Project not found", code: "NOT_FOUND" };
+  }
+  if (repoConfig.sourceType === "local") {
+    return { success: false, error: "Branch management is not available for local projects", code: "NOT_APPLICABLE" };
+  }
+
+  try {
+    await prisma.repo.update({
+      where: { id: repoConfig.id },
+      data: { branch: parsed.data.branch },
+    });
+
+    revalidateTag(repoTag(parsed.data.owner, parsed.data.name), "default");
+    revalidatePath("/(dashboard)");
+
+    return { success: true, data: { branch: parsed.data.branch } };
+  } catch (error: unknown) {
+    return { success: false, error: sanitizeError(error, "DB_ERROR"), code: "DB_ERROR" };
   }
 }
