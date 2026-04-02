@@ -4,7 +4,7 @@ import { ProgressRing } from "@/components/shared/progress-ring";
 import { ParseErrorsDialog } from "@/components/shared/parse-errors-dialog";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, BookOpen, Layers } from "lucide-react";
+import { GitBranch, FolderOpen, BookOpen, Layers } from "lucide-react";
 import type { BmadProject, Epic } from "@/lib/bmad/types";
 
 interface RepoCardProps {
@@ -65,8 +65,16 @@ export function RepoCard({ project, description }: RepoCardProps) {
                 )}
               </CardTitle>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <GitBranch className="h-3 w-3" />
-                <span>{project.owner}/{project.repo}</span>
+                {project.owner === "local" ? (
+                  <FolderOpen className="h-3 w-3" />
+                ) : (
+                  <GitBranch className="h-3 w-3" />
+                )}
+                <span>
+                  {project.owner === "local"
+                    ? project.displayName
+                    : `${project.owner}/${project.repo}`}
+                </span>
               </div>
               {description && (
                 <p className="text-xs text-muted-foreground line-clamp-1">

@@ -1,8 +1,4 @@
-import {
-  createUserOctokit,
-  getCachedUserRepoTree,
-  getCachedUserRawContent,
-} from "../github/client";
+import type { ContentProvider } from "@/lib/content-provider";
 import { BmadProject, ParseErrorEntry } from "./types";
 import { parseSprintStatus } from "./parse-sprint-status";
 import { parseEpics } from "./parse-epics";
@@ -20,29 +16,17 @@ const PLANNING = "planning-artifacts";
 const IMPLEMENTATION = "implementation-artifacts";
 
 /**
- * Parse a full BMAD project from a GitHub repo.
- * When accessToken and userId are provided, uses authenticated Octokit with
- * per-user caching. Falls back to PAT-based legacy functions otherwise.
+ * Parse a full BMAD project using a ContentProvider abstraction.
+ * Works with both GitHub repos and local folders.
  */
 export async function getBmadProject(
   config: RepoConfig,
-  accessToken?: string,
-  userId?: string,
+  provider: ContentProvider,
 ): Promise<BmadProject | null> {
   const { owner, name: repo, branch, displayName } = config;
 
-  if (!accessToken || !userId) {
-    console.error(`[getBmadProject] Missing accessToken or userId for ${owner}/${repo}`);
-    return null;
-  }
-
-  const octokit = createUserOctokit(accessToken);
-
-  const tree = await getCachedUserRepoTree(octokit, userId, owner, repo, branch);
-
-  const allPaths = tree.tree
-    .filter((item) => item.type === "blob")
-    .map((item) => item.path);
+  const providerTree = await provider.getTree();
+  const allPaths = providerTree.paths;
 
   const bmadPaths = allPaths.filter((p) => p.startsWith(BMAD_OUTPUT + "/"));
 
@@ -61,15 +45,12 @@ export async function getBmadProject(
   const storyPaths = bmadPaths.filter((p) => {
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
     const filename = p.split("/").pop() || "";
-    // Match "N-N-title.md" pattern (e.g., "1-1-project-initialization.md")
     if (/^\d+-\d+-.+\.md$/.test(filename)) return true;
-    // Also match legacy "story-N.md" / "story_N.md" pattern
     if (/^story[_-]?\d/i.test(filename)) return true;
     return false;
   });
 
-  const fetchContent = (path: string) =>
-    getCachedUserRawContent(octokit, userId, owner, repo, branch, path);
+  const fetchContent = (path: string) => provider.getFileContent(path);
 
   const fetches: Promise<{ key: string; content: string }>[] = [];
 
@@ -151,14 +132,10 @@ export async function getBmadProject(
   const docPaths = bmadPaths.filter((p) => !storyPathSet.has(p));
   const fileTree = buildFileTree(docPaths, BMAD_OUTPUT);
 
-  // Detect a "Docs" folder (case-insensitive) at the repo root
-  const docsFolder = tree.tree.find(
-    (item) =>
-      item.type === "tree" &&
-      !item.path.includes("/") &&
-      item.path.toLowerCase() === "docs"
-  );
-  const docsFolderName = docsFolder?.path ?? null;
+  // Detect a "Docs" folder (case-insensitive) via rootDirectories (F20)
+  const docsFolderName = providerTree.rootDirectories.find(
+    (d) => d.toLowerCase() === "docs"
+  ) ?? null;
   const docsTree = docsFolderName
     ? buildFileTree(
         allPaths.filter((p) => p.startsWith(docsFolderName + "/")),

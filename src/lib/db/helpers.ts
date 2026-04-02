@@ -49,11 +49,12 @@ export const getAuthenticatedUserId = cache(
  */
 export const getAuthenticatedRepos = cache(
   async (userId: string): Promise<RepoConfig[]> => {
-    return prisma.repo.findMany({
+    const rows = await prisma.repo.findMany({
       where: { userId },
-      select: { owner: true, name: true, branch: true, displayName: true, description: true, lastSyncedAt: true },
+      select: { owner: true, name: true, branch: true, displayName: true, description: true, sourceType: true, localPath: true, lastSyncedAt: true },
       orderBy: { createdAt: "desc" },
     });
+    return rows as RepoConfig[];
   }
 );
 
@@ -67,9 +68,10 @@ export const getAuthenticatedRepoConfig = cache(
     owner: string,
     name: string
   ): Promise<RepoConfig | null> => {
-    return prisma.repo.findFirst({
+    const row = await prisma.repo.findFirst({
       where: { userId, owner, name },
-      select: { owner: true, name: true, branch: true, displayName: true, description: true, lastSyncedAt: true },
+      select: { owner: true, name: true, branch: true, displayName: true, description: true, sourceType: true, localPath: true, lastSyncedAt: true },
     });
+    return row as RepoConfig | null;
   }
 );

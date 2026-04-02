@@ -4,6 +4,7 @@ import { AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 export default function RepoError({
   error,
@@ -12,8 +13,14 @@ export default function RepoError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const params = useParams<{ owner: string }>();
+  const isLocal = params?.owner === "local";
+
   const is404 = error.message?.includes("404");
   const isAuthError = error.message?.includes("401") || error.message?.includes("403");
+  const isPathStale =
+    error.message?.includes("PATH_STALE") ||
+    error.message?.includes("PATH_NOT_FOUND");
 
   return (
     <div className="flex items-center justify-center p-8">
@@ -25,18 +32,22 @@ export default function RepoError({
 
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">
-              {is404
-                ? "Repository not found"
-                : isAuthError
-                  ? "Authentication required"
-                  : "Failed to load project"}
+              {isPathStale
+                ? "Local folder not found"
+                : is404
+                  ? "Repository not found"
+                  : isAuthError
+                    ? "Authentication required"
+                    : "Failed to load project"}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {is404
-                ? "The repository does not exist or is private. Reconnect via GitHub to renew your OAuth authorization."
-                : isAuthError
-                  ? "Your GitHub token is invalid or lacks the required permissions. Try reconnecting."
-                  : error.message || "An unexpected error occurred while loading the project data."}
+              {isPathStale || isLocal
+                ? "This local folder no longer exists or has been moved. You can remove it from your dashboard."
+                : is404
+                  ? "The repository does not exist or is private. Reconnect via GitHub to renew your OAuth authorization."
+                  : isAuthError
+                    ? "Your GitHub token is invalid or lacks the required permissions. Try reconnecting."
+                    : error.message || "An unexpected error occurred while loading the project data."}
             </p>
           </div>
 

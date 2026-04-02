@@ -3,10 +3,11 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   FolderGit2,
+  FolderOpen,
   ChevronRight,
   Eye,
   Map,
@@ -37,6 +38,8 @@ import type { RepoConfig } from "@/lib/types";
 interface AppSidebarProps {
   repos: RepoConfig[];
   userRole?: string;
+  localFsEnabled?: boolean;
+  githubEnabled?: boolean;
 }
 
 const projectTabs = [
@@ -46,8 +49,9 @@ const projectTabs = [
   { label: "Library", segment: "docs", icon: FileText },
 ];
 
-export function AppSidebar({ repos, userRole }: AppSidebarProps) {
+export function AppSidebar({ repos, userRole, localFsEnabled, githubEnabled }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Track which repo key is expanded — only one at a time
   const activeRepoKey = useMemo(
@@ -99,7 +103,11 @@ export function AppSidebar({ repos, userRole }: AppSidebarProps) {
           <div className="flex items-center justify-between">
             <SidebarGroupLabel>Projects</SidebarGroupLabel>
             <div className="group-data-[collapsible=icon]:hidden pr-2">
-              <AddRepoDialog importedRepos={repos} />
+              <AddRepoDialog
+                importedRepos={repos}
+                localFsEnabled={localFsEnabled}
+                githubEnabled={githubEnabled}
+              />
             </div>
           </div>
           <SidebarGroupContent>
@@ -114,13 +122,22 @@ export function AppSidebar({ repos, userRole }: AppSidebarProps) {
                   <Collapsible.Root
                     key={repoKey}
                     open={openRepo === repoKey}
-                    onOpenChange={(open) => setOpenRepo(open ? repoKey : null)}
+                    onOpenChange={(open) => {
+                      setOpenRepo(open ? repoKey : null);
+                      if (open && !isRepoActive) {
+                        router.push(basePath);
+                      }
+                    }}
                     className="group/collapsible"
                   >
                     <SidebarMenuItem>
                       <Collapsible.Trigger asChild>
                         <SidebarMenuButton isActive={isRepoActive} tooltip={repo.displayName}>
-                          <FolderGit2 className="h-4 w-4" />
+                          {repo.sourceType === "local" ? (
+                            <FolderOpen className="h-4 w-4" />
+                          ) : (
+                            <FolderGit2 className="h-4 w-4" />
+                          )}
                           <span>{repo.displayName}</span>
                           <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>

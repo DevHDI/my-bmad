@@ -6,7 +6,7 @@ import { ProjectStatsGrid } from "@/components/dashboard/project-stats-grid";
 import { EpicsList } from "@/components/dashboard/epics-list";
 import { VelocityMetrics } from "@/components/dashboard/velocity-metrics";
 import { KeyArtifactsCard } from "@/components/dashboard/key-artifacts-card";
-import { GitBranch, Clock } from "lucide-react";
+import { GitBranch, Clock, FolderOpen } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 import { DeleteRepoButton } from "@/components/shared/delete-repo-button";
 import { RefreshRepoButton } from "@/components/shared/refresh-repo-button";
@@ -47,15 +47,16 @@ export default async function RepoOverviewPage({ params }: RepoPageProps) {
   const repoConfig = await getAuthenticatedRepoConfig(userId, owner, repoName);
   if (!repoConfig) return notFound();
 
-  const token = await getGitHubToken(userId);
-  const project = await getCachedBmadProject(repoConfig, token ?? undefined, userId);
+  const isLocal = repoConfig.sourceType === "local";
+  const token = isLocal ? undefined : (await getGitHubToken(userId)) ?? undefined;
+  const project = await getCachedBmadProject(repoConfig, token, userId);
   if (!project) return notFound();
 
   const planningArtifacts = extractPlanningArtifacts(project.fileTree);
 
   return (
     <div className="space-y-8 pb-8">
-      {/* Header : nom, refresh, delete, branche, synchro */}
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -70,10 +71,19 @@ export default async function RepoOverviewPage({ params }: RepoPageProps) {
             />
           </div>
           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-            <GitBranch className="h-4 w-4" />
-            <span>
-              {project.owner}/{project.repo} ({project.branch})
-            </span>
+            {isLocal ? (
+              <>
+                <FolderOpen className="h-4 w-4" />
+                <span>{repoConfig.localPath ?? "Local folder"}</span>
+              </>
+            ) : (
+              <>
+                <GitBranch className="h-4 w-4" />
+                <span>
+                  {project.owner}/{project.repo} ({project.branch})
+                </span>
+              </>
+            )}
             {repoConfig.lastSyncedAt && (
               <>
                 <span className="text-muted-foreground/50">·</span>

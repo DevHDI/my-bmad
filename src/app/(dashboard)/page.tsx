@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getBmadProject } from "@/lib/bmad/parser";
-import { getGitHubToken } from "@/lib/github/client";
+import { createUserOctokit, getGitHubToken } from "@/lib/github/client";
+import { createContentProvider } from "@/lib/content-provider";
 import { ReposGrid } from "@/components/dashboard/repos-grid";
 import { GlobalStatsBar } from "@/components/dashboard/global-stats-bar";
 import {
@@ -9,17 +10,26 @@ import {
 } from "@/lib/db/helpers";
 import type { BmadProject } from "@/lib/bmad/types";
 
+const localFsEnabled = process.env.ENABLE_LOCAL_FS === "true";
+
 export default async function DashboardPage() {
   const userId = await getAuthenticatedUserId();
   if (!userId) redirect("/login");
 
   const repos = await getAuthenticatedRepos(userId);
-  const token = await getGitHubToken(userId);
+
+  // Only fetch GitHub token if at least one repo is GitHub-sourced (F34)
+  const hasGithubRepos = repos.some((r) => r.sourceType === "github");
+  const token = hasGithubRepos ? await getGitHubToken(userId) : null;
+  const octokit = token ? createUserOctokit(token) : undefined;
 
   const projects: BmadProject[] = [];
   const errors: string[] = [];
   const results = await Promise.allSettled(
-    repos.map((repo) => getBmadProject(repo, token ?? undefined, userId))
+    repos.map((repo) => {
+      const provider = createContentProvider(repo, octokit, userId);
+      return getBmadProject(repo, provider);
+    })
   );
 
   for (let i = 0; i < results.length; i++) {
@@ -33,6 +43,14 @@ export default async function DashboardPage() {
       errors.push(`${repo.displayName}: ${msg}`);
     }
   }
+
+  // F44: Separate error messages by source type
+  const hasGithubErrors = errors.length > 0 && repos.some(
+    (r, i) => r.sourceType === "github" && results[i].status === "rejected"
+  );
+  const hasLocalErrors = errors.length > 0 && repos.some(
+    (r, i) => r.sourceType === "local" && results[i].status === "rejected"
+  );
 
   return (
     <div className="mesh-gradient min-h-full">
@@ -55,15 +73,25 @@ export default async function DashboardPage() {
                 <li key={i}>{err}</li>
               ))}
             </ul>
-            {errors.some((e) => /\b(404|Not Found)\b/i.test(e)) && (
+            {hasGithubErrors && errors.some((e) => /\b(404|Not Found)\b/i.test(e)) && (
               <p className="mt-2 text-xs text-muted-foreground">
                 If the repo is private, try reconnecting via GitHub to renew your OAuth authorization.
+              </p>
+            )}
+            {hasLocalErrors && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Check that the local folder still exists and is accessible on the server.
               </p>
             )}
           </div>
         )}
         {projects.length > 0 && <GlobalStatsBar projects={projects} />}
-        <ReposGrid projects={projects} repos={repos} />
+        <ReposGrid
+          projects={projects}
+          repos={repos}
+          localFsEnabled={localFsEnabled}
+          githubEnabled={!!token}
+        />
       </div>
     </div>
   );

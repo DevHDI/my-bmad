@@ -6,9 +6,11 @@ import type { RepoConfig } from "@/lib/types";
 interface ReposGridProps {
   projects: BmadProject[];
   repos: RepoConfig[];
+  localFsEnabled?: boolean;
+  githubEnabled?: boolean;
 }
 
-export function ReposGrid({ projects, repos }: ReposGridProps) {
+export function ReposGrid({ projects, repos, localFsEnabled, githubEnabled }: ReposGridProps) {
   if (repos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -18,7 +20,7 @@ export function ReposGrid({ projects, repos }: ReposGridProps) {
         <p className="mt-2 text-sm text-muted-foreground mb-4">
           Add a BMAD repo to get started.
         </p>
-        <AddRepoCard />
+        <AddRepoCard localFsEnabled={localFsEnabled} githubEnabled={githubEnabled} />
       </div>
     );
   }
@@ -49,7 +51,7 @@ export function ReposGrid({ projects, repos }: ReposGridProps) {
           description={descriptionMap.get(`${project.owner}/${project.repo}`) ?? null}
         />
       ))}
-      <AddRepoCard />
+      <AddRepoCard localFsEnabled={localFsEnabled} githubEnabled={githubEnabled} />
     </div>
   );
 }

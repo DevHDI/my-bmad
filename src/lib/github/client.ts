@@ -55,7 +55,7 @@ export async function getGitHubToken(
 // Authenticated Octokit helpers (user OAuth token)
 // ---------------------------------------------------------------------------
 
-type UserOctokit = ReturnType<typeof createUserOctokit>;
+export type UserOctokit = ReturnType<typeof createUserOctokit>;
 
 /**
  * Fetch the full recursive tree of a repo using the user's authenticated Octokit.

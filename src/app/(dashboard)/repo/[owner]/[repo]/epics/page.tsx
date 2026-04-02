@@ -19,8 +19,9 @@ export default async function EpicsPage({ params }: EpicsPageProps) {
   const repoConfig = await getAuthenticatedRepoConfig(userId, owner, repoName);
   if (!repoConfig) return notFound();
 
-  const token = await getGitHubToken(userId);
-  const project = await getCachedBmadProject(repoConfig, token ?? undefined, userId);
+  const isLocal = repoConfig.sourceType === "local";
+  const token = isLocal ? undefined : (await getGitHubToken(userId)) ?? undefined;
+  const project = await getCachedBmadProject(repoConfig, token, userId);
   if (!project) return notFound();
 
   const totalEpicProgress = project.epics.length > 0
