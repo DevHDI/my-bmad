@@ -1,6 +1,6 @@
 # MyBMAD Dashboard
 
-A web dashboard to visualize and track [BMAD (Breakthrough Method of Agile AI-Driven Development)](https://github.com/bmad-method/bmad-method) projects from your GitHub repositories — or directly from local folders.
+A web dashboard - https://mybmad.hichem.cloud/ - to visualize and track [BMAD (Breakthrough Method of Agile AI-Driven Development)](https://github.com/bmad-method/bmad-method) projects from your GitHub repositories — or directly from local folders.
 
 > **License:** GNU AGPL v3 — see [LICENSE](./LICENSE) for details.
 
