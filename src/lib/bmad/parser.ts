@@ -57,6 +57,8 @@ export async function getBmadProject(
   const storyPaths = bmadPaths.filter((p) => {
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
     const filename = p.split("/").pop() || "";
+    if (/^epic[-_]/i.test(filename)) return false;
+    if (/^bmad[-_]/i.test(filename)) return false;
     if (/^\d+-\d+-.+\.md$/.test(filename)) return true;
     if (/^[a-z][a-z0-9_-]*-\d+-.+\.md$/i.test(filename)) return true;
     if (/^story[_-]?\d/i.test(filename)) return true;
@@ -146,6 +148,7 @@ export async function getBmadProject(
       const filename = storyPath.split("/").pop() || "";
       const story = parseStory(content, filename);
       if (story) {
+        story._sourcePath = storyPath;
         rawStories.push(story);
       } else {
         parseErrors.push({ file: storyPath, error: "Failed to parse story. Check the markdown format and section structure.", contentType: "story" });
@@ -159,8 +162,19 @@ export async function getBmadProject(
     console.warn(`[BMAD Parse] ${owner}/${repo}: ${parseErrors.length} parsing errors out of ${totalFiles} files`);
   }
 
-  const { epics, stories } = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
-  const storyPathSet = new Set(storyPaths);
+  const { epics, stories, droppedStories } = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
+  
+  for (const dropped of droppedStories) {
+    if (dropped._sourcePath) {
+      parseErrors.push({
+        file: dropped._sourcePath,
+        error: "Story file not declared in epics.md or sprint-status.yaml (or was a duplicate) — ignored",
+        contentType: "orphan-story"
+      });
+    }
+  }
+
+  const storyPathSet = new Set(stories.map(s => s._sourcePath).filter(Boolean));
   const docPaths = bmadPaths.filter((p) => !storyPathSet.has(p));
   const fileTree = buildFileTree(docPaths, BMAD_OUTPUT);
 

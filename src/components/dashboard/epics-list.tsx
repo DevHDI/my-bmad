@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Epic } from "@/lib/bmad/types";
 
+import { getEpicShortId } from "@/lib/bmad/utils";
+
 interface EpicsListProps {
   epics: Epic[];
   owner: string;
@@ -55,8 +57,8 @@ export function EpicsList({ epics, owner, repo }: EpicsListProps) {
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-xs font-mono text-muted-foreground shrink-0">
-                  E{epic.id}
+                <span className="text-xs font-mono text-muted-foreground shrink-0" title={epic.id}>
+                  {getEpicShortId(epic)}
                 </span>
                 <span className="font-medium truncate">
                   {epic.title}

@@ -1,4 +1,4 @@
-import { FileTreeNode, StoryStatus } from "./types";
+import { Epic, FileTreeNode, StoryStatus } from "./types";
 
 /**
  * Canonical normalizeStoryStatus used across all BMAD parsers.
@@ -15,6 +15,39 @@ export function normalizeStoryStatus(raw: string | undefined): StoryStatus {
   if (s === "backlog" || s === "todo" || s === "pending") return "backlog";
   if (s === "optional") return "backlog";
   return "backlog";
+}
+
+/**
+ * Returns a short, visual-friendly ID for an Epic (e.g., "DI", "HK", "1").
+ */
+export function getEpicShortId(epic: Epic): string {
+  // If numeric ID, return as is
+  if (/^\d+$/.test(epic.id)) return epic.id;
+
+  // Try to get prefix from first story (e.g., "di.1" -> "DI")
+  if (epic.stories && epic.stories.length > 0) {
+    const firstStoryId = epic.stories[0];
+    const parts = firstStoryId.split(".");
+    if (parts.length > 1 && parts[0].length <= 4) {
+      return parts[0].toUpperCase();
+    }
+  }
+
+  // Fallback: first 2 characters of the ID in uppercase
+  return epic.id.slice(0, 2).toUpperCase();
+}
+
+/**
+ * Returns a short, visual-friendly ID for a Story (e.g., "1", "2").
+ * Typically used when the Epic context is already clear.
+ */
+export function getStoryShortId(storyId: string, index?: number): string {
+  const parts = storyId.split(".");
+  if (parts.length > 1) {
+    // If it's like "1.1", "DI.1", or "HKP.1.2", return everything after the first dot
+    return parts.slice(1).join(".");
+  }
+  return index !== undefined ? String(index + 1) : storyId;
 }
 
 export function buildFileTree(paths: string[], basePath: string): FileTreeNode[] {

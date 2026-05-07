@@ -19,13 +19,43 @@ export function correlate(
   epics: Epic[],
   stories: StoryDetail[],
   epicStatuses?: { id: string; status: EpicStatus }[]
-): { epics: Epic[]; stories: StoryDetail[] } {
+): { epics: Epic[]; stories: StoryDetail[]; droppedStories: StoryDetail[] } {
   // Work on copies to avoid mutating the input arrays/objects
-  let mutableStories = stories.map((s) => ({ ...s }));
+  const declaredIds = new Set<string>([
+    ...epics.flatMap((e) => e.stories),
+    ...(sprintStatus?.stories.map((s) => s.id) ?? []),
+  ]);
+
+  const sprintSlugs = new Set<string>(
+    sprintStatus?.stories.map(s => s.title) || []
+  );
+
+  const droppedStories: StoryDetail[] = [];
   const storyMap = new Map<string, StoryDetail>();
-  for (const s of mutableStories) {
-    storyMap.set(s.id, s);
+
+  for (const s of stories) {
+    if (!declaredIds.has(s.id)) {
+      droppedStories.push({ ...s });
+      continue;
+    }
+
+    if (storyMap.has(s.id)) {
+      const current = storyMap.get(s.id)!;
+      const currentMatches = current._sourcePath && Array.from(sprintSlugs).some(slug => current._sourcePath!.includes(slug));
+      const newMatches = s._sourcePath && Array.from(sprintSlugs).some(slug => s._sourcePath!.includes(slug));
+      
+      if (newMatches && !currentMatches) {
+        droppedStories.push(current);
+        storyMap.set(s.id, { ...s });
+      } else {
+        droppedStories.push({ ...s });
+      }
+    } else {
+      storyMap.set(s.id, { ...s });
+    }
   }
+
+  let mutableStories = Array.from(storyMap.values());
 
   // Apply statuses from sprint-status.yaml to stories, and create stubs for
   // stories that only exist in sprint-status (no markdown file).
@@ -107,7 +137,7 @@ export function correlate(
     return story;
   });
 
-  return { epics: enrichedEpics, stories: resultStories };
+  return { epics: enrichedEpics, stories: resultStories, droppedStories };
 }
 
 export function computeProjectStats(project: Omit<BmadProject, "totalStories" | "completedStories" | "inProgressStories" | "progressPercent">): {

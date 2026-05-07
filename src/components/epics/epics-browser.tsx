@@ -10,6 +10,7 @@ import { StoryDetailView } from "./story-detail-view";
 import { useBreadcrumb } from "@/contexts/breadcrumb-context";
 import { ArrowLeft } from "lucide-react";
 import type { Epic, StoryDetail } from "@/lib/bmad/types";
+import { getStoryShortId } from "@/lib/bmad/utils";
 
 type View = "epics" | "stories" | "story";
 
@@ -229,7 +230,7 @@ export function EpicsBrowser({
               </div>
             ) : (
               <div className="space-y-3">
-                {epicStories.map((story) => (
+                {epicStories.map((story, index) => (
                   <Card
                     key={story.id}
                     className="glass-card cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
@@ -246,8 +247,8 @@ export function EpicsBrowser({
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                            {story.id}
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0" title={story.id}>
+                            {getStoryShortId(story.id, index)}
                           </span>
                           <span className="font-medium truncate">
                             {story.title}
