@@ -74,3 +74,62 @@ Description of second epic.
     expect(result.epics[0].stories).toEqual(["1.1"]);
   });
 });
+
+describe("parseEpics — alphanumeric IDs", () => {
+  it("parses a single-word alphanumeric epic", () => {
+    const content = `## Epic Housekeeping: Structural Stabilization\nCleanup and debt.`;
+    const result = parseEpics(content);
+    expect(result.epics).toHaveLength(1);
+    expect(result.epics[0].id).toBe("housekeeping");
+    expect(result.epics[0].title).toBe("Structural Stabilization");
+  });
+
+  it("parses an epic with slash in ID (normalizes to hyphen)", () => {
+    const content = `## Epic DevOps/Infra: Pipeline Quality\nFoundation automation.`;
+    const result = parseEpics(content);
+    expect(result.epics).toHaveLength(1);
+    expect(result.epics[0].id).toBe("devops-infra");
+    expect(result.epics[0].title).toBe("Pipeline Quality");
+  });
+
+  it("parses alphanumeric story refs from body", () => {
+    const content = `## Epic DevOps/Infra: Pipeline Quality
+- Story DI.1 - First task
+- Story DI.2 - Second task
+### Story DI.3: Third task
+`;
+    const result = parseEpics(content);
+    expect(result.epics[0].stories).toEqual(["di.1", "di.2", "di.3"]);
+  });
+
+  it("parses mixed numeric + alphanumeric epics in sequence", () => {
+    const content = `## Epic 1: Foundation
+- Story 1.1 - Init
+
+## Epic DevOps/Infra: Pipeline
+- Story DI.1 - CI/CD
+
+## Epic 2: Features
+- Story 2.1 - Auth
+`;
+    const result = parseEpics(content);
+    expect(result.epics).toHaveLength(3);
+    expect(result.epics[0].id).toBe("1");
+    expect(result.epics[1].id).toBe("devops-infra");
+    expect(result.epics[2].id).toBe("2");
+    expect(result.epics[1].stories).toEqual(["di.1"]);
+  });
+
+  it("does NOT parse headings without 'Epic' keyword as alphanumeric epics", () => {
+    const content = `## Introduction: Overview\n\nSome intro text.`;
+    const result = parseEpics(content);
+    expect(result.epics).toHaveLength(0);
+  });
+
+  it("regression: numeric ID still works unchanged after alphanumeric support", () => {
+    const content = `## Epic 3: Auth System\n- Story 3.1 - Login\n- Story 3.2 - Logout`;
+    const result = parseEpics(content);
+    expect(result.epics[0].id).toBe("3");
+    expect(result.epics[0].stories).toEqual(["3.1", "3.2"]);
+  });
+});

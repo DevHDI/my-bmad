@@ -5,8 +5,8 @@ import { BmadProject, Epic, SprintStatus, StoryDetail, EpicStatus } from "./type
  * a human-readable title: "Project Initialization".
  */
 function formatStoryTitle(slug: string): string {
-  // Remove the leading "N-N-" prefix
-  const withoutPrefix = slug.replace(/^\d+-\d+-/, "");
+  // Remove the leading "N-N-" or "alpha-N-" prefix
+  const withoutPrefix = slug.replace(/^(?:\d+|[a-z][a-z0-9_-]*)-\d+-/i, "");
   if (!withoutPrefix || withoutPrefix === slug) return slug;
   return withoutPrefix
     .split("-")
@@ -19,13 +19,43 @@ export function correlate(
   epics: Epic[],
   stories: StoryDetail[],
   epicStatuses?: { id: string; status: EpicStatus }[]
-): { epics: Epic[]; stories: StoryDetail[] } {
+): { epics: Epic[]; stories: StoryDetail[]; droppedStories: StoryDetail[] } {
   // Work on copies to avoid mutating the input arrays/objects
-  let mutableStories = stories.map((s) => ({ ...s }));
+  const declaredIds = new Set<string>([
+    ...epics.flatMap((e) => e.stories),
+    ...(sprintStatus?.stories.map((s) => s.id) ?? []),
+  ]);
+
+  const sprintSlugs = new Set<string>(
+    sprintStatus?.stories.map(s => s.title) || []
+  );
+
+  const droppedStories: StoryDetail[] = [];
   const storyMap = new Map<string, StoryDetail>();
-  for (const s of mutableStories) {
-    storyMap.set(s.id, s);
+
+  for (const s of stories) {
+    if (!declaredIds.has(s.id)) {
+      droppedStories.push({ ...s });
+      continue;
+    }
+
+    if (storyMap.has(s.id)) {
+      const current = storyMap.get(s.id)!;
+      const currentMatches = current._sourcePath && Array.from(sprintSlugs).some(slug => current._sourcePath!.includes(slug));
+      const newMatches = s._sourcePath && Array.from(sprintSlugs).some(slug => s._sourcePath!.includes(slug));
+      
+      if (newMatches && !currentMatches) {
+        droppedStories.push(current);
+        storyMap.set(s.id, { ...s });
+      } else {
+        droppedStories.push({ ...s });
+      }
+    } else {
+      storyMap.set(s.id, { ...s });
+    }
   }
+
+  let mutableStories = Array.from(storyMap.values());
 
   // Apply statuses from sprint-status.yaml to stories, and create stubs for
   // stories that only exist in sprint-status (no markdown file).
@@ -93,16 +123,21 @@ export function correlate(
   });
 
   const resultStories = mutableStories.map((story) => {
-    if (story.epicId) {
-      const epic = enrichedEpics.find((e) => e.id === story.epicId);
-      if (epic) {
-        return { ...story, epicTitle: epic.title };
-      }
+    // Primary: match by epicId
+    let epic = story.epicId
+      ? enrichedEpics.find((e) => e.id === story.epicId)
+      : undefined;
+    // Backfill: when epicId doesn't match any epic, find one that lists this story
+    if (!epic) {
+      epic = enrichedEpics.find((e) => e.stories.includes(story.id));
+    }
+    if (epic) {
+      return { ...story, epicId: epic.id, epicTitle: epic.title };
     }
     return story;
   });
 
-  return { epics: enrichedEpics, stories: resultStories };
+  return { epics: enrichedEpics, stories: resultStories, droppedStories };
 }
 
 export function computeProjectStats(project: Omit<BmadProject, "totalStories" | "completedStories" | "inProgressStories" | "progressPercent">): {

@@ -140,3 +140,50 @@ title: Test
     expect(epic!.stories).toEqual(["1.1", "1.2", "1.3"]);
   });
 });
+
+describe("parseEpicFile — alphanumeric IDs", () => {
+  it("extracts id from alphanumeric filename", () => {
+    const epic = parseEpicFile("Some content", "epic-housekeeping.md");
+    expect(epic).not.toBeNull();
+    expect(epic!.id).toBe("housekeeping");
+  });
+
+  it("extracts id from hyphenated alphanumeric filename", () => {
+    const epic = parseEpicFile("Some content", "epic-devops-infra.md");
+    expect(epic).not.toBeNull();
+    expect(epic!.id).toBe("devops-infra");
+  });
+
+  it("extracts id from alphanumeric heading with Epic keyword", () => {
+    const content = `## Epic HK: Housekeeping\n\nResolve tech debt.`;
+    const epic = parseEpicFile(content, "unknown.md");
+    expect(epic).not.toBeNull();
+    expect(epic!.id).toBe("hk");
+    expect(epic!.title).toBe("Housekeeping");
+  });
+
+  it("extracts id from heading with slash (normalizes to hyphen)", () => {
+    const content = `## Epic DevOps/Infra: Pipeline Quality\n\nAutomation foundation.`;
+    const epic = parseEpicFile(content, "unknown.md");
+    expect(epic).not.toBeNull();
+    expect(epic!.id).toBe("devops-infra");
+    expect(epic!.title).toBe("Pipeline Quality");
+  });
+
+  it("captures alphanumeric story refs (e.g. DI.1, HK.2)", () => {
+    const content = `---
+id: devops-infra
+title: Pipeline
+---
+- Story DI.1 - First
+- Story DI.2 - Second
+`;
+    const epic = parseEpicFile(content, "epic-devops-infra.md");
+    expect(epic!.stories).toEqual(["di.1", "di.2"]);
+  });
+
+  it("regression: numeric epic-1.md still yields id '1'", () => {
+    const epic = parseEpicFile("Some content", "epic-1.md");
+    expect(epic!.id).toBe("1");
+  });
+});

@@ -46,6 +46,7 @@ export interface StoryDetail {
   tasks: StoryTask[];
   completedTasks: number;
   totalTasks: number;
+  _sourcePath?: string;
 }
 
 export interface StoryTask {

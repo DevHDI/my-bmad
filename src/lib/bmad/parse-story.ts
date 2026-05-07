@@ -1,6 +1,6 @@
 import matter from "gray-matter";
 import { StoryDetail, StoryTask } from "./types";
-import { normalizeStoryStatus } from "./utils";
+import { normalizeStoryStatus, normalizeAlphanumericId } from "./utils";
 
 export function parseStory(
   content: string,
@@ -10,8 +10,14 @@ export function parseStory(
     // Try to extract ID from filename first
     // Pattern: "N-N-title.md" (e.g., "1-1-project-initialization.md")
     const numericMatch = filename.match(/^(\d+)-(\d+)-/);
+    // Alphanumeric prefix: "di-1-title.md" or "hk-2-title.md"
+    const alphaMatch = !numericMatch
+      ? filename.match(/^([A-Za-z][A-Za-z0-9_-]*?)-(\d+)-/)
+      : null;
     // Legacy pattern: "story-N.md" or "story_N.md"
-    const legacyMatch = filename.match(/story[_-]?(\d+(?:[._-]\d+)?)/i);
+    const legacyMatch = !numericMatch && !alphaMatch
+      ? filename.match(/story[_-]?(\d+(?:[._-]\d+)?)/i)
+      : null;
 
     let id: string;
     let epicId: string;
@@ -19,6 +25,10 @@ export function parseStory(
     if (numericMatch) {
       id = `${numericMatch[1]}.${numericMatch[2]}`;
       epicId = numericMatch[1];
+    } else if (alphaMatch) {
+      const prefix = normalizeAlphanumericId(alphaMatch[1]);
+      id = `${prefix}.${alphaMatch[2]}`;
+      epicId = prefix;
     } else if (legacyMatch) {
       id = legacyMatch[1].replace(/[._]/, ".");
       epicId = id.includes(".") ? id.split(".")[0] : "";
@@ -50,8 +60,8 @@ export function parseStory(
       body = content;
     }
 
-    // Extract title from heading: "# Story 1.1: Title" or "# Title"
-    const titleMatch = body.match(/^#\s+(?:Story\s+[\d.]+[:\s]+)?(.+)/m);
+    // Extract title from heading: "# Story 1.1: Title", "# Story DI.1: Title", or "# Title"
+    const titleMatch = body.match(/^#\s+(?:Story\s+[\w.-]+[:\s]+)?(.+)/m);
     const title = frontmatterTitle || titleMatch?.[1]?.trim() || `Story ${id}`;
 
     // Extract status from "Status: done" line (plain text, not frontmatter)

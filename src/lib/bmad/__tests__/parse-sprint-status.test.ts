@@ -102,3 +102,82 @@ development_status:
     });
   });
 });
+
+describe("parseSprintStatus — alphanumeric IDs", () => {
+  it("parses alphanumeric epic key with single word", () => {
+    const content = `
+development_status:
+  epic-housekeeping: in-progress
+`;
+    const result = parseSprintStatus(content);
+    expect(result).not.toBeNull();
+    expect(result!.epicStatuses).toHaveLength(1);
+    expect(result!.epicStatuses[0]).toEqual({ id: "housekeeping", status: "in-progress" });
+  });
+
+  it("parses alphanumeric epic key with hyphenated name", () => {
+    const content = `
+development_status:
+  epic-devops-infra: done
+`;
+    const result = parseSprintStatus(content);
+    expect(result!.epicStatuses[0]).toEqual({ id: "devops-infra", status: "done" });
+  });
+
+  it("parses alphanumeric story keys", () => {
+    const content = `
+development_status:
+  di-1-task-a: done
+  hk-2-refactor: in-progress
+`;
+    const result = parseSprintStatus(content);
+    expect(result).not.toBeNull();
+    expect(result!.sprintStatus.stories).toHaveLength(2);
+    expect(result!.sprintStatus.stories[0]).toEqual({
+      id: "di.1",
+      title: "di-1-task-a",
+      status: "done",
+      epicId: "di",
+    });
+    expect(result!.sprintStatus.stories[1]).toEqual({
+      id: "hk.2",
+      title: "hk-2-refactor",
+      status: "in-progress",
+      epicId: "hk",
+    });
+  });
+
+  it("skips alphanumeric retrospective entries", () => {
+    const content = `
+development_status:
+  di-1-task: done
+  epic-devops-infra-retrospective: done
+`;
+    const result = parseSprintStatus(content);
+    expect(result!.sprintStatus.stories).toHaveLength(1);
+    expect(result!.epicStatuses).toHaveLength(0);
+  });
+
+  it("does NOT parse single-segment alpha keys as stories", () => {
+    // A key with no number segment (no "-N-") should not match either pattern
+    const content = `
+development_status:
+  di-only: done
+`;
+    const result = parseSprintStatus(content);
+    expect(result!.sprintStatus.stories).toHaveLength(0);
+    expect(result!.epicStatuses).toHaveLength(0);
+  });
+
+  it("regression: numeric story keys still parse correctly", () => {
+    const content = `
+development_status:
+  epic-1: done
+  1-1-project-initialization: done
+`;
+    const result = parseSprintStatus(content);
+    expect(result!.epicStatuses[0]).toEqual({ id: "1", status: "done" });
+    expect(result!.sprintStatus.stories[0].id).toBe("1.1");
+    expect(result!.sprintStatus.stories[0].epicId).toBe("1");
+  });
+});

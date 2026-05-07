@@ -138,3 +138,55 @@ describe("correlate", () => {
     expect(result.epics[0].status).toBe("done");
   });
 });
+
+describe("correlate — alphanumeric IDs and backfill", () => {
+  it("backfills epicId for a story whose epicId doesn't match any epic.id", () => {
+    // Epic has id "devops-infra" and lists story "di.1"
+    // Story file produces epicId "di" (from filename di-1-task.md)
+    const stories = [makeStory({ id: "di.1", epicId: "di", status: "done" })];
+    const epics = [makeEpic({ id: "devops-infra", title: "Pipeline Quality", stories: ["di.1"] })];
+
+    const result = correlate(null, epics, stories);
+    expect(result.stories[0].epicId).toBe("devops-infra");
+    expect(result.stories[0].epicTitle).toBe("Pipeline Quality");
+  });
+
+  it("assigns correct progress to alphanumeric epic via backfill", () => {
+    const stories = [
+      makeStory({ id: "di.1", epicId: "di", status: "done" }),
+      makeStory({ id: "di.2", epicId: "di", status: "backlog" }),
+    ];
+    const epics = [makeEpic({ id: "devops-infra", stories: ["di.1", "di.2"] })];
+
+    const result = correlate(null, epics, stories);
+    expect(result.epics[0].totalStories).toBe(2);
+    expect(result.epics[0].completedStories).toBe(1);
+    expect(result.epics[0].progressPercent).toBe(50);
+  });
+
+  it("mixes numeric and alphanumeric epics without interference", () => {
+    const stories = [
+      makeStory({ id: "1.1", epicId: "1", status: "done" }),
+      makeStory({ id: "di.1", epicId: "di", status: "in-progress" }),
+    ];
+    const epics = [
+      makeEpic({ id: "1", title: "Foundation", stories: ["1.1"] }),
+      makeEpic({ id: "devops-infra", title: "DevOps", stories: ["di.1"] }),
+    ];
+
+    const result = correlate(null, epics, stories);
+    expect(result.epics[0].id).toBe("1");
+    expect(result.epics[0].completedStories).toBe(1);
+    expect(result.epics[1].id).toBe("devops-infra");
+    expect(result.epics[1].status).toBe("in-progress");
+  });
+
+  it("does not backfill when epicId already matches an epic", () => {
+    const stories = [makeStory({ id: "1.1", epicId: "1", status: "backlog" })];
+    const epics = [makeEpic({ id: "1", stories: ["1.1"] })];
+
+    const result = correlate(null, epics, stories);
+    // epicId should remain "1" (the matching epic), not get replaced
+    expect(result.stories[0].epicId).toBe("1");
+  });
+});

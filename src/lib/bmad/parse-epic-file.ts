@@ -1,5 +1,6 @@
 import { Epic, EpicStatus } from "./types";
 import matter from "gray-matter";
+import { normalizeAlphanumericId } from "./utils";
 
 /**
  * Parse a single epic from an individual markdown file.
@@ -57,14 +58,19 @@ function extractId(
     return String(fm.id);
   }
 
-  // 2. From heading: ## Epic 1: Title  or  ## 1 - Title
-  const headingMatch = body.match(/^##\s+(?:Epic\s+)?(\d+)[\s:.—-]/im);
-  if (headingMatch) return headingMatch[1];
+  // 2. From heading: "## Epic 1: Title", "## 1 - Title", or "## Epic DevOps/Infra: Title"
+  const numericHeading = body.match(/^##\s+(?:Epic\s+)?(\d+)[\s:.—-]/im);
+  if (numericHeading) return numericHeading[1];
+  const alphaHeading = body.match(/^##\s+Epic\s+([A-Za-z][A-Za-z0-9_/-]*)[\s:.—-]/im);
+  if (alphaHeading) return normalizeAlphanumericId(alphaHeading[1]);
 
-  // 3. From filename: epic-1.md, epic_1.md, 1-title.md, 1.md
+  // 3. From filename: epic-1.md, epic_1.md, 1-title.md, 1.md, epic-di.md, epic-devops-infra.md
   const nameWithoutExt = filename.replace(/\.md$/i, "");
-  const fileMatch = nameWithoutExt.match(/^(?:epic[_-]?)?(\d+)(?:[_-]|$)/i);
-  if (fileMatch) return fileMatch[1];
+  const numericFile = nameWithoutExt.match(/^(?:epic[_-]?)?(\d+)(?:[_-]|$)/i);
+  if (numericFile) return numericFile[1];
+  // Alpha requires explicit "epic-" prefix to avoid false positives (e.g. "readme.md")
+  const alphaFile = nameWithoutExt.match(/^epic[_-]([a-z][a-z0-9_-]*)$/i);
+  if (alphaFile) return normalizeAlphanumericId(alphaFile[1]);
 
   return null;
 }
@@ -81,7 +87,7 @@ function extractTitle(
 
   // 2. From heading
   const headingMatch = body.match(
-    /^##\s+(?:Epic\s+)?\d+[\s:.—-]+(.+)/im,
+    /^##\s+(?:Epic\s+)?(?:\d+|[A-Za-z][A-Za-z0-9_/-]*)[\s:.—-]+(.+)/im,
   );
   if (headingMatch) return headingMatch[1].trim();
 
@@ -89,8 +95,11 @@ function extractTitle(
   const h1Match = body.match(/^#\s+(.+)/m);
   if (h1Match) {
     const h1 = h1Match[1].trim();
-    // Strip "Epic N:" prefix if present
-    const stripped = h1.replace(/^(?:Epic\s+)?\d+[\s:.—-]+/i, "").trim();
+    // Strip "Epic N:" or "Epic DevOps/Infra:" prefix if present
+    const stripped = h1.replace(
+      /^(?:Epic\s+(?:\d+|[A-Za-z][A-Za-z0-9_/-]*)|(?:Epic\s+)?\d+)[\s:.—-]+/i,
+      ""
+    ).trim();
     return stripped || h1;
   }
 
@@ -99,9 +108,12 @@ function extractTitle(
 
 function extractStoryReferences(body: string): string[] {
   const ids: string[] = [];
-  const matches = body.matchAll(/(?:story|S)[\s-]*(\d+(?:\.\d+)?)/gi);
+  const matches = body.matchAll(
+    /(?:story|S)[\s-]*((?:\d+(?:\.\d+)?)|(?:[A-Za-z][A-Za-z0-9_-]*\.\d+))/gi
+  );
   for (const m of matches) {
-    const id = m[1];
+    const raw = m[1];
+    const id = /[A-Za-z]/.test(raw) ? raw.toLowerCase() : raw;
     if (id && !ids.includes(id)) {
       ids.push(id);
     }

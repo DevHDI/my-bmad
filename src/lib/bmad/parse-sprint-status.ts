@@ -1,6 +1,6 @@
 import yaml from "js-yaml";
 import { SprintStatus, SprintStoryEntry, EpicStatus } from "./types";
-import { normalizeStoryStatus } from "./utils";
+import { normalizeStoryStatus, normalizeAlphanumericId } from "./utils";
 
 function normalizeEpicStatus(raw: string | undefined): EpicStatus {
   if (!raw) return "not-started";
@@ -37,23 +37,32 @@ export function parseSprintStatus(content: string): ParsedSprintData | null {
       for (const [key, value] of Object.entries(devStatus)) {
         const statusStr = String(value);
 
-        // Epic entries: "epic-N: status"
-        const epicMatch = key.match(/^epic-(\d+)$/);
+        // Retrospective entries: skip (before epicMatch to catch epic-N-retrospective keys)
+        if (key.includes("retrospective")) continue;
+
+        // Epic entries: "epic-N: status" or "epic-devops-infra: status"
+        const epicMatch = key.match(/^epic-(\d+|[a-z][a-z0-9_-]*)$/i);
         if (epicMatch) {
+          const rawId = epicMatch[1];
+          const id = /^\d+$/.test(rawId) ? rawId : normalizeAlphanumericId(rawId);
           epicStatuses.push({
-            id: epicMatch[1],
+            id,
             status: normalizeEpicStatus(statusStr),
           });
           continue;
         }
 
-        // Retrospective entries: skip
-        if (key.includes("retrospective")) continue;
-
-        // Story entries: "N-N-title: status" (e.g., "1-1-project-initialization: done")
-        const storyMatch = key.match(/^(\d+)-(\d+)-(.+)$/);
+        // Story entries: "N-N-title: status" (numeric) or "di-1-title: status" (alpha prefix)
+        const numericStory = key.match(/^(\d+)-(\d+)-(.+)$/);
+        const alphaStory = !numericStory
+          ? key.match(/^([a-z][a-z0-9_-]*?)-(\d+)-(.+)$/i)
+          : null;
+        const storyMatch = numericStory ?? alphaStory;
         if (storyMatch) {
-          const epicId = storyMatch[1];
+          const rawEpicId = storyMatch[1];
+          const epicId = /^\d+$/.test(rawEpicId)
+            ? rawEpicId
+            : normalizeAlphanumericId(rawEpicId);
           const storyNum = storyMatch[2];
           const id = `${epicId}.${storyNum}`;
           stories.push({
