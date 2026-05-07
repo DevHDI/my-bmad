@@ -71,3 +71,7 @@ export function normalizeStoryId(raw: string): string {
     .replace(/[._]/, ".")
     .trim();
 }
+
+export function normalizeAlphanumericId(raw: string): string {
+  return raw.toLowerCase().replace(/\//g, "-");
+}

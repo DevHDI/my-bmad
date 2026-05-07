@@ -143,3 +143,31 @@ status: in-progress
     });
   });
 });
+
+describe("parseStory — alphanumeric filenames", () => {
+  it("extracts id and epicId from alpha-prefixed filename", () => {
+    const result = parseStory("# My Task\n\nSome content", "di-1-task.md");
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe("di.1");
+    expect(result!.epicId).toBe("di");
+  });
+
+  it("normalizes uppercase prefix to lowercase", () => {
+    const result = parseStory("# Task\n\nContent", "HK-2-refactor.md");
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe("hk.2");
+    expect(result!.epicId).toBe("hk");
+  });
+
+  it("extracts title from alphanumeric story heading", () => {
+    const content = "# Story DI.1: Pipeline Setup\n\nContent";
+    const result = parseStory(content, "di-1-pipeline.md");
+    expect(result!.title).toBe("Pipeline Setup");
+  });
+
+  it("regression: numeric N-N-title.md still produces id N.N", () => {
+    const result = parseStory("# Title\n\nContent", "3-2-setup.md");
+    expect(result!.id).toBe("3.2");
+    expect(result!.epicId).toBe("3");
+  });
+});

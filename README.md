@@ -14,6 +14,7 @@ A web dashboard - https://mybmad.hichem.cloud/ - to visualize and track [BMAD (B
 - [Project Structure](#project-structure)
 - [Available Scripts](#available-scripts)
 - [Production Deployment](#production-deployment-docker)
+- [Epic and Story Naming Conventions](#epic-and-story-naming-conventions)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -165,6 +166,55 @@ The stack includes:
 - **Next.js** application container
 - **PostgreSQL** database
 - **Traefik** reverse proxy with automatic Let's Encrypt TLS
+
+---
+
+## Epic and Story Naming Conventions
+
+MyBMAD supports both **numeric** and **alphanumeric** epic/story IDs:
+
+### Epic IDs
+
+| Format | Example heading | Parsed ID |
+|--------|----------------|-----------|
+| Numeric | `## Epic 1: Foundation` or `## 1: Foundation` | `1` |
+| Single-word | `## Epic Housekeeping: Cleanup` | `housekeeping` |
+| Multi-word | `## Epic DevOps/Infra: Pipeline` | `devops-infra` |
+
+> **Note:** The `Epic` keyword is **required** for alphanumeric IDs to avoid false positives (e.g. `## Introduction:` is not parsed as an epic).
+
+### Story IDs and Filenames
+
+| Filename pattern | Parsed ID | Epic ID |
+|-----------------|-----------|---------|
+| `1-2-setup.md` | `1.2` | `1` |
+| `di-1-pipeline.md` | `di.1` | `di` |
+| `hk-3-cleanup.md` | `hk.3` | `hk` |
+| `story-5.md` (legacy) | `5` | — |
+
+Alphanumeric prefixes are normalized to **lowercase** (`DI`, `DevOps`, `Housekeeping` → `di`, `devops`, `housekeeping`). Slashes are converted to hyphens (`DevOps/Infra` → `devops-infra`).
+
+### Sprint-Status Keys
+
+```yaml
+development_status:
+  epic-1: done                         # numeric epic
+  epic-devops-infra: done              # alphanumeric epic
+  1-1-project-setup: done              # numeric story (epicId: 1)
+  di-1-pipeline-setup: in-progress     # alphanumeric story (epicId: di)
+```
+
+### Linking Alphanumeric Stories to Epics
+
+When a story's filename prefix (e.g. `di`) doesn't directly match an epic ID (e.g. `devops-infra`), the dashboard uses story references declared in the epic body to bridge the gap:
+
+```markdown
+## Epic DevOps/Infra: Pipeline Quality
+- Story DI.1 - First task
+- Story DI.2 - Second task
+```
+
+Stories referenced via `Story DI.1` or `S DI.1` inside an epic section are automatically associated with that epic, regardless of filename prefix.
 
 ---
 

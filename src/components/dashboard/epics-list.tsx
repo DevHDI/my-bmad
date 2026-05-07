@@ -34,8 +34,8 @@ export function EpicsList({ epics, owner, repo }: EpicsListProps) {
     );
   }
 
-  const sorted = [...epics].sort(
-    (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0),
+  const sorted = [...epics].sort((a, b) =>
+    a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: "base" }),
   );
 
   return (

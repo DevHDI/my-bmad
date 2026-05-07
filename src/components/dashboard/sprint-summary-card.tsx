@@ -53,12 +53,9 @@ export function SprintSummaryCard({
     byEpic.set(epicKey, entry);
   }
 
-  // Sort epics numerically
-  const sortedEpics = [...byEpic.entries()].sort((a, b) => {
-    const numA = parseInt(a[0], 10) || 0;
-    const numB = parseInt(b[0], 10) || 0;
-    return numA - numB;
-  });
+  const sortedEpics = [...byEpic.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: "base" }),
+  );
 
   return (
     <Card className="glass-card">

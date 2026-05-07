@@ -58,6 +58,7 @@ export async function getBmadProject(
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
     const filename = p.split("/").pop() || "";
     if (/^\d+-\d+-.+\.md$/.test(filename)) return true;
+    if (/^[a-z][a-z0-9_-]*-\d+-.+\.md$/i.test(filename)) return true;
     if (/^story[_-]?\d/i.test(filename)) return true;
     return false;
   });

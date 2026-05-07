@@ -5,8 +5,8 @@ import { BmadProject, Epic, SprintStatus, StoryDetail, EpicStatus } from "./type
  * a human-readable title: "Project Initialization".
  */
 function formatStoryTitle(slug: string): string {
-  // Remove the leading "N-N-" prefix
-  const withoutPrefix = slug.replace(/^\d+-\d+-/, "");
+  // Remove the leading "N-N-" or "alpha-N-" prefix
+  const withoutPrefix = slug.replace(/^(?:\d+|[a-z][a-z0-9_-]*)-\d+-/i, "");
   if (!withoutPrefix || withoutPrefix === slug) return slug;
   return withoutPrefix
     .split("-")
@@ -93,11 +93,16 @@ export function correlate(
   });
 
   const resultStories = mutableStories.map((story) => {
-    if (story.epicId) {
-      const epic = enrichedEpics.find((e) => e.id === story.epicId);
-      if (epic) {
-        return { ...story, epicTitle: epic.title };
-      }
+    // Primary: match by epicId
+    let epic = story.epicId
+      ? enrichedEpics.find((e) => e.id === story.epicId)
+      : undefined;
+    // Backfill: when epicId doesn't match any epic, find one that lists this story
+    if (!epic) {
+      epic = enrichedEpics.find((e) => e.stories.includes(story.id));
+    }
+    if (epic) {
+      return { ...story, epicId: epic.id, epicTitle: epic.title };
     }
     return story;
   });
