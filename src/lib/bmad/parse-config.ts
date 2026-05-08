@@ -54,3 +54,31 @@ export async function getBmadConfig(
 
   return { outputDir: DEFAULT_OUTPUT_DIR };
 }
+
+/**
+ * Resolve the BMAD output directory and ensure the provider can scan it.
+ * For local providers, extends the whitelist to the top-level segment of
+ * the configured output dir. Returns the (possibly re-fetched) tree paths
+ * and the resolved `outputDir`.
+ */
+export async function resolveBmadOutputDir(
+  provider: ContentProvider,
+  initialPaths: string[],
+): Promise<{ outputDir: string; paths: string[] }> {
+  const { outputDir } = await getBmadConfig(provider, initialPaths);
+  if (outputDir === DEFAULT_OUTPUT_DIR || !provider.extendBmadDirs) {
+    return { outputDir, paths: initialPaths };
+  }
+  const topSegment = outputDir.split("/")[0];
+  try {
+    provider.extendBmadDirs(topSegment);
+    const refreshed = await provider.getTree();
+    return { outputDir, paths: refreshed.paths };
+  } catch (e) {
+    console.warn(
+      `[BMAD Config] Cannot extend whitelist to "${topSegment}":`,
+      e,
+    );
+    return { outputDir, paths: initialPaths };
+  }
+}

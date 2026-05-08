@@ -6,7 +6,7 @@ import { parseEpicFile } from "./parse-epic-file";
 import { parseStory } from "./parse-story";
 import { correlate, computeProjectStats } from "./correlate";
 import { buildFileTree } from "./utils";
-import { getBmadConfig, DEFAULT_OUTPUT_DIR } from "./parse-config";
+import { resolveBmadOutputDir } from "./parse-config";
 import { parseEpicFolderName } from "./parse-epic-folder";
 import type { RepoConfig } from "@/lib/types";
 import type { ParsedBmadFile, BmadFileMetadata } from "./types";
@@ -27,22 +27,13 @@ export async function getBmadProject(
 ): Promise<BmadProject | null> {
   const { owner, name: repo, branch, displayName } = config;
 
-  let providerTree = await provider.getTree();
-  const { outputDir } = await getBmadConfig(provider, providerTree.paths);
+  const initialTree = await provider.getTree();
+  const { outputDir, paths: allPaths } = await resolveBmadOutputDir(
+    provider,
+    initialTree.paths,
+  );
+  const providerTree = { ...initialTree, paths: allPaths };
 
-  if (outputDir !== DEFAULT_OUTPUT_DIR && provider.extendBmadDirs) {
-    try {
-      provider.extendBmadDirs(outputDir);
-      providerTree = await provider.getTree();
-    } catch (e) {
-      console.warn(
-        `[BMAD Parse] Cannot extend whitelist to "${outputDir}":`,
-        e,
-      );
-    }
-  }
-
-  const allPaths = providerTree.paths;
   const bmadPaths = allPaths.filter((p) => p.startsWith(outputDir + "/"));
 
   const sprintStatusPath = bmadPaths.find(
@@ -187,6 +178,15 @@ export async function getBmadProject(
   let rawEpics: import("./types").Epic[] = [];
   const rawStories: NonNullable<ReturnType<typeof parseStory>>[] = [];
 
+  // Track the parsed epic that came from each folder's epic.md so we can
+  // reconcile story epic-ids in case the frontmatter id differs from the
+  // folder-derived id.
+  const epicByMetaPath = new Map<string, import("./types").Epic>();
+  const storyByPath = new Map<
+    string,
+    NonNullable<ReturnType<typeof parseStory>>
+  >();
+
   // Synthesize epics for folders that have no epic.md inside.
   for (const e of derivedFolderEpics) {
     rawEpics.push({
@@ -225,6 +225,7 @@ export async function getBmadProject(
       const epic = parseEpicFile(content, filename);
       if (epic) {
         rawEpics.push(epic);
+        epicByMetaPath.set(filePath, epic);
       } else {
         parseErrors.push({ file: filePath, error: "Failed to parse individual epic file. Check format (frontmatter or heading).", contentType: "epic" });
       }
@@ -243,8 +244,29 @@ export async function getBmadProject(
           }
         }
         rawStories.push(story);
+        storyByPath.set(storyPath, story);
       } else {
         parseErrors.push({ file: storyPath, error: "Failed to parse story. Check the markdown format and section structure.", contentType: "story" });
+      }
+    }
+  }
+
+  // Reconcile epic id when epic.md frontmatter declared a different id than
+  // the folder name implied. Stories were tagged with the folder-derived id;
+  // rewrite them to the canonical id from the parsed epic.
+  for (const ef of epicFolders) {
+    if (!ef.metaPath) continue;
+    const parsedEpic = epicByMetaPath.get(ef.metaPath);
+    if (!parsedEpic || parsedEpic.id === ef.id) continue;
+
+    const oldPrefix = ef.id + ".";
+    const newPrefix = parsedEpic.id + ".";
+    for (const sp of ef.storyPaths) {
+      const story = storyByPath.get(sp);
+      if (!story) continue;
+      story.epicId = parsedEpic.id;
+      if (story.id.startsWith(oldPrefix)) {
+        story.id = newPrefix + story.id.slice(oldPrefix.length);
       }
     }
   }

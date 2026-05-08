@@ -27,6 +27,50 @@ const REPO: RepoConfig = {
   lastSyncedAt: null,
 };
 
+describe("getBmadProject — nested output_folder", () => {
+  it("scans a nested custom output dir like 'custom/out' when provider supports extension", async () => {
+    let extendedTo: string | undefined;
+    const allFiles = {
+      "_bmad/core/config.yaml": `output_folder: "{project-root}/custom/out"`,
+      "custom/out/planning-artifacts/epics.md": [
+        "## Epic 1: Custom",
+        "- Story 1.1 - Foo",
+      ].join("\n"),
+      "custom/out/implementation-artifacts/1-1-foo.md": [
+        "# Foo",
+        "Status: done",
+      ].join("\n"),
+    };
+    let bmadDirs = new Set<string>(["_bmad", "_bmad-output"]);
+    const provider: ContentProvider = {
+      async getTree() {
+        const visible = Object.keys(allFiles).filter((p) => {
+          const seg = p.split("/")[0];
+          return bmadDirs.has(seg);
+        });
+        return { paths: visible, rootDirectories: ["_bmad", "custom"] };
+      },
+      async getFileContent(p: string) {
+        if (!(p in allFiles)) throw new Error(`Not found: ${p}`);
+        return allFiles[p as keyof typeof allFiles];
+      },
+      async validateRoot() {},
+      extendBmadDirs(name: string) {
+        extendedTo = name;
+        bmadDirs = new Set([...bmadDirs, name]);
+      },
+    };
+
+    const project = await getBmadProject(REPO, provider);
+    // The whitelist should have been extended to the top-level segment.
+    expect(extendedTo).toBe("custom");
+    expect(project!.epics).toHaveLength(1);
+    expect(project!.epics[0].title).toBe("Custom");
+    expect(project!.stories).toHaveLength(1);
+    expect(project!.stories[0].id).toBe("1.1");
+  });
+});
+
 describe("getBmadProject — epic-folder layout", () => {
   it("derives an epic from folder name when no epic.md is present", async () => {
     const provider = makeProvider({
@@ -113,6 +157,35 @@ describe("getBmadProject — epic-folder layout", () => {
     expect(project!.epics).toHaveLength(1); // only epic 2 has a meta source
     expect(project!.epics[0].id).toBe("2");
     expect(project!.stories.map((s) => s.id).sort()).toEqual(["1.1", "2.1"]);
+  });
+
+  it("reconciles story epicId when epic.md declares an id different from the folder name", async () => {
+    const provider = makeProvider({
+      // Folder name implies id "2", but epic.md frontmatter says id "10"
+      "_bmad-output/planning-artifacts/epics/epic-2-renamed/epic.md": [
+        "---",
+        "id: 10",
+        "title: Renamed Epic",
+        "---",
+        "",
+        "Body.",
+      ].join("\n"),
+      // Story filename only carries "1" — should resolve to "10.1", not "2.1"
+      "_bmad-output/planning-artifacts/epics/epic-2-renamed/story-1.md": [
+        "# Bare story",
+        "Status: done",
+      ].join("\n"),
+    });
+
+    const project = await getBmadProject(REPO, provider);
+    expect(project!.epics).toHaveLength(1);
+    expect(project!.epics[0].id).toBe("10");
+    expect(project!.stories).toHaveLength(1);
+    expect(project!.stories[0].id).toBe("10.1");
+    expect(project!.stories[0].epicId).toBe("10");
+    // Correlation must hold: epic shows 1/1 done.
+    expect(project!.epics[0].completedStories).toBe(1);
+    expect(project!.epics[0].totalStories).toBe(1);
   });
 
   it("ignores epic-folder when a single epics.md is present (single-file wins)", async () => {
