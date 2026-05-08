@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ProgressRing } from "@/components/shared/progress-ring";
 import { SegmentedProgressBar } from "@/components/shared/segmented-progress-bar";
 import { EpicsTimeline } from "./epics-timeline";
+import { EpicsKanban } from "./epics-kanban";
+import { EpicStoriesSheet } from "./epic-stories-sheet";
 import { StoryDetailView } from "./story-detail-view";
 import { useBreadcrumb } from "@/contexts/breadcrumb-context";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, GanttChartSquare, Columns3 } from "lucide-react";
 import type { Epic, StoryDetail } from "@/lib/bmad/types";
+
+type EpicsLayout = "timeline" | "kanban";
 
 type View = "epics" | "stories" | "story";
 
@@ -31,7 +36,27 @@ export function EpicsBrowser({
   const [view, setView] = useState<View>("epics");
   const [selectedEpicId, setSelectedEpicId] = useState<string | null>(null);
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
+  const [layout, setLayout] = useState<EpicsLayout>("timeline");
+  const [sheetEpicId, setSheetEpicId] = useState<string | null>(null);
   const { setExtraSegments, clearExtraSegments } = useBreadcrumb();
+
+  const sheetEpic = useMemo(
+    () => epics.find((e) => e.id === sheetEpicId) ?? null,
+    [epics, sheetEpicId],
+  );
+
+  const sheetEpicStories = useMemo(
+    () => (sheetEpicId ? stories.filter((s) => s.epicId === sheetEpicId) : []),
+    [stories, sheetEpicId],
+  );
+
+  const openEpicSheet = useCallback((epicId: string) => {
+    setSheetEpicId(epicId);
+  }, []);
+
+  const handleSheetOpenChange = useCallback((open: boolean) => {
+    if (!open) setSheetEpicId(null);
+  }, []);
 
   const selectedEpic = useMemo(
     () => epics.find((e) => e.id === selectedEpicId) ?? null,
@@ -171,9 +196,47 @@ export function EpicsBrowser({
       )}
 
       <div className="space-y-4">
-        {/* Active view */}
+        {/* Layout toggle (only on the epics list view) */}
         {view === "epics" && (
+          <div className="flex justify-end">
+            <div
+              className="flex gap-1 border rounded-lg p-1"
+              role="group"
+              aria-label="Epics display mode"
+            >
+              <Button
+                variant={layout === "timeline" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setLayout("timeline")}
+                className="gap-1.5"
+                aria-label="Timeline view"
+                aria-pressed={layout === "timeline"}
+              >
+                <GanttChartSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Timeline</span>
+              </Button>
+              <Button
+                variant={layout === "kanban" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setLayout("kanban")}
+                className="gap-1.5"
+                aria-label="Kanban view"
+                aria-pressed={layout === "kanban"}
+              >
+                <Columns3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Board</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Active view */}
+        {view === "epics" && layout === "timeline" && (
           <EpicsTimeline epics={epics} onSelectEpic={goToStories} />
+        )}
+
+        {view === "epics" && layout === "kanban" && (
+          <EpicsKanban epics={epics} onSelectEpic={openEpicSheet} />
         )}
 
         {view === "stories" && selectedEpic && (
@@ -274,6 +337,13 @@ export function EpicsBrowser({
           <StoryDetailView story={selectedStory} />
         )}
       </div>
+
+      <EpicStoriesSheet
+        open={sheetEpicId !== null}
+        onOpenChange={handleSheetOpenChange}
+        epic={sheetEpic}
+        stories={sheetEpicStories}
+      />
     </div>
   );
 }
