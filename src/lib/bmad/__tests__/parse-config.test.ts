@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   parseConfigContent,
   getBmadConfig,
+  isPathOutsideNestedOutput,
   DEFAULT_OUTPUT_DIR,
   CORE_CONFIG_PATH,
 } from "../parse-config";
@@ -122,5 +123,39 @@ describe("getBmadConfig", () => {
     const config = await getBmadConfig(provider, [CORE_CONFIG_PATH]);
     expect(config.outputDir).toBe(DEFAULT_OUTPUT_DIR);
     consoleSpy.mockRestore();
+  });
+});
+
+describe("isPathOutsideNestedOutput", () => {
+  it("returns false for a single-segment outputDir (no nesting concern)", () => {
+    expect(isPathOutsideNestedOutput("_bmad-output/file.md", "_bmad-output")).toBe(false);
+    // Even a path with the same top but technically outside has nothing
+    // nested to escape from — the provider's own whitelist is the boundary.
+    expect(isPathOutsideNestedOutput("foo/x.md", "_bmad-output")).toBe(false);
+  });
+
+  it("allows reads under the configured nested outputDir", () => {
+    expect(isPathOutsideNestedOutput("custom/out/foo.md", "custom/out")).toBe(false);
+    expect(isPathOutsideNestedOutput("custom/out/sub/bar.md", "custom/out")).toBe(false);
+  });
+
+  it("denies sibling reads under the same top segment", () => {
+    expect(isPathOutsideNestedOutput("custom/secret.txt", "custom/out")).toBe(true);
+    expect(isPathOutsideNestedOutput("custom/other/foo.md", "custom/out")).toBe(true);
+  });
+
+  it("does not flag paths under unrelated top segments", () => {
+    expect(isPathOutsideNestedOutput("_bmad/core/config.yaml", "custom/out")).toBe(false);
+    expect(isPathOutsideNestedOutput("docs/readme.md", "custom/out")).toBe(false);
+  });
+
+  it("denies the bare top segment itself when nested output is configured", () => {
+    // "custom" alone is not under "custom/out/" → must be denied
+    expect(isPathOutsideNestedOutput("custom", "custom/out")).toBe(true);
+  });
+
+  it("treats outputDir with the prefix exactly as outputDir's name (not a substring)", () => {
+    // "custom/output-something" should NOT be considered under "custom/out"
+    expect(isPathOutsideNestedOutput("custom/output-something/file.md", "custom/out")).toBe(true);
   });
 });

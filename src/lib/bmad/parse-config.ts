@@ -56,6 +56,28 @@ export async function getBmadConfig(
 }
 
 /**
+ * When `outputDir` is nested (e.g. "custom/out"), the LocalProvider whitelist
+ * is extended at the top-level segment ("custom") only — the walker can't
+ * filter on a multi-segment prefix. This means a manual file read could
+ * reach sibling files under the top segment (e.g. "custom/secret.txt")
+ * even though only "custom/out/..." should be accessible.
+ *
+ * Returns true when `requestedPath` falls inside the top segment but
+ * outside the configured outputDir prefix — caller must deny in that case.
+ */
+export function isPathOutsideNestedOutput(
+  requestedPath: string,
+  outputDir: string,
+): boolean {
+  const topSegment = outputDir.split("/")[0];
+  const isNested = topSegment !== outputDir;
+  if (!isNested) return false;
+  const requestedTop = requestedPath.split("/")[0];
+  if (requestedTop !== topSegment) return false;
+  return !requestedPath.startsWith(outputDir + "/");
+}
+
+/**
  * Resolve the BMAD output directory and ensure the provider can scan it.
  * For local providers, extends the whitelist to the top-level segment of
  * the configured output dir. Returns the (possibly re-fetched) tree paths

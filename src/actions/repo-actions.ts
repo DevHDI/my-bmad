@@ -14,6 +14,7 @@ import { parseBmadFile } from "@/lib/bmad/parser";
 import {
   getBmadConfig,
   resolveBmadOutputDir,
+  isPathOutsideNestedOutput,
   DEFAULT_OUTPUT_DIR,
 } from "@/lib/bmad/parse-config";
 import { prisma } from "@/lib/db/client";
@@ -676,10 +677,25 @@ export async function fetchFileContent(input: {
         return { success: false, error: sanitizeError(null, "FS_ERROR"), code: "FS_ERROR" };
       }
       const provider = new LocalProvider(repoConfig.localPath);
-      // Extend whitelist when the requested file lives under a configured
-      // custom output dir (or its top segment) — otherwise the read is denied.
+      // The default LocalProvider whitelist covers `_bmad` and `_bmad-output`.
+      // When the project declares a custom (possibly nested) `output_folder`,
+      // we extend the whitelist to its top-level segment so the provider can
+      // read inside it — but the provider only validates by single segment.
+      // Re-check the requested path here so a nested config like
+      // `output_folder: custom/out` cannot be used to read `custom/secret.txt`.
       const tree = await provider.getTree();
       const { outputDir } = await getBmadConfig(provider, tree.paths);
+      const requestedPath = parsed.data.path;
+      if (
+        outputDir !== DEFAULT_OUTPUT_DIR &&
+        isPathOutsideNestedOutput(requestedPath, outputDir)
+      ) {
+        return {
+          success: false,
+          error: sanitizeError(null, "ACCESS_DENIED"),
+          code: "ACCESS_DENIED",
+        };
+      }
       if (outputDir !== DEFAULT_OUTPUT_DIR) {
         const topSegment = outputDir.split("/")[0];
         try {
@@ -688,7 +704,7 @@ export async function fetchFileContent(input: {
           // Validation failed — fall through; getFileContent will deny if needed.
         }
       }
-      content = await provider.getFileContent(parsed.data.path);
+      content = await provider.getFileContent(requestedPath);
     } else {
       const token = await getGitHubToken(userId);
       if (!token) {
