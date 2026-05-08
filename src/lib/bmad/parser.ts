@@ -7,6 +7,7 @@ import { parseStory } from "./parse-story";
 import { correlate, computeProjectStats } from "./correlate";
 import { buildFileTree } from "./utils";
 import { getBmadConfig, DEFAULT_OUTPUT_DIR } from "./parse-config";
+import { parseEpicFolderName } from "./parse-epic-folder";
 import type { RepoConfig } from "@/lib/types";
 import type { ParsedBmadFile, BmadFileMetadata } from "./types";
 import { normalizeStoryStatus } from "./utils";
@@ -50,30 +51,91 @@ export async function getBmadProject(
       p.endsWith("sprint-status.yaml")
   );
 
-  // Auto-detect epics source: single file first, then directory fallback
+  // Auto-detect epics source: single file first, then directory fallback.
+  // The single file lives directly under planning-artifacts/ — NOT inside
+  // a subfolder (otherwise an epic-folder's epic.md would be captured here).
   const epicsPath = bmadPaths.find(
     (p) =>
-      p.includes(PLANNING) &&
-      (p.endsWith("epics.md") || p.endsWith("epic.md"))
+      p.endsWith("/" + PLANNING + "/epics.md") ||
+      p.endsWith("/" + PLANNING + "/epic.md"),
   );
 
-  const EPICS_DIR = PLANNING + "/epics";
-  const epicFilePaths = epicsPath
-    ? [] // single file wins — skip directory
-    : bmadPaths.filter((p) => {
-        if (!p.includes(EPICS_DIR + "/") || !p.endsWith(".md")) return false;
-        const filename = p.split("/").pop() || "";
-        // Match: epic-1.md, epic_1.md, 1-title.md, 1.md, epic-1-title.md
-        return /^(?:epic[_-]?)?\d+/i.test(filename);
-      });
+  // All .md files under <outputDir>/.../<PLANNING>/epics/
+  const allEpicsDirPaths = bmadPaths.filter(
+    (p) => p.includes("/" + PLANNING + "/epics/") && p.endsWith(".md"),
+  );
 
-  const storyPaths = bmadPaths.filter((p) => {
+  // Split by depth: flat (epic-1.md) vs nested (epic-1/<file>.md)
+  const flatEpicPaths: string[] = [];
+  const folderEpicMap = new Map<string, string[]>(); // folderName → contained .md paths
+  for (const p of allEpicsDirPaths) {
+    const idx = p.indexOf("/" + PLANNING + "/epics/");
+    const rel = p.slice(idx + ("/" + PLANNING + "/epics/").length);
+    const parts = rel.split("/");
+    if (parts.length === 1) {
+      if (/^(?:epic[_-]?)?\d+/i.test(parts[0])) flatEpicPaths.push(p);
+    } else {
+      const folder = parts[0];
+      if (!folderEpicMap.has(folder)) folderEpicMap.set(folder, []);
+      folderEpicMap.get(folder)!.push(p);
+    }
+  }
+
+  // Process epic folders → meta path or derived epic, plus inner stories
+  interface EpicFolderEntry {
+    folder: string;
+    id: string;
+    title: string;
+    metaPath: string | null;
+    storyPaths: string[];
+  }
+  const epicFolders: EpicFolderEntry[] = [];
+  const epicIdByStoryPath = new Map<string, string>();
+
+  for (const [folder, paths] of folderEpicMap) {
+    const derived = parseEpicFolderName(folder);
+    if (!derived) continue;
+    const metaPath = paths.find((p) => p.endsWith("/epic.md")) ?? null;
+    const innerStories = paths.filter((p) => !p.endsWith("/epic.md"));
+    epicFolders.push({
+      folder,
+      id: derived.id,
+      title: derived.title,
+      metaPath,
+      storyPaths: innerStories,
+    });
+    for (const sp of innerStories) {
+      epicIdByStoryPath.set(sp, derived.id);
+    }
+  }
+
+  // Epic file paths = flat files + folder meta files (if no single epics.md)
+  const epicFilePaths = epicsPath
+    ? [] // single epics.md wins — skip directory-based sources
+    : [
+        ...flatEpicPaths,
+        ...epicFolders
+          .filter((e) => e.metaPath)
+          .map((e) => e.metaPath as string),
+      ];
+
+  // Folder-derived epics (no epic.md inside) — used only if no epics.md
+  const derivedFolderEpics = epicsPath
+    ? []
+    : epicFolders.filter((e) => !e.metaPath);
+
+  // Stories: implementation-artifacts (legacy) ∪ epic-folder-inner stories
+  const implStoryPaths = bmadPaths.filter((p) => {
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
     const filename = p.split("/").pop() || "";
     if (/^\d+-\d+-.+\.md$/.test(filename)) return true;
     if (/^story[_-]?\d/i.test(filename)) return true;
     return false;
   });
+  const folderStoryPaths = epicsPath
+    ? [] // single-file mode: don't pull stories from epic folders
+    : epicFolders.flatMap((e) => e.storyPaths);
+  const storyPaths = Array.from(new Set([...implStoryPaths, ...folderStoryPaths]));
 
   const fetchContent = (path: string) => provider.getFileContent(path);
 
@@ -125,6 +187,20 @@ export async function getBmadProject(
   let rawEpics: import("./types").Epic[] = [];
   const rawStories: NonNullable<ReturnType<typeof parseStory>>[] = [];
 
+  // Synthesize epics for folders that have no epic.md inside.
+  for (const e of derivedFolderEpics) {
+    rawEpics.push({
+      id: e.id,
+      title: e.title || `Epic ${e.id}`,
+      description: "",
+      status: "not-started",
+      stories: [],
+      totalStories: 0,
+      completedStories: 0,
+      progressPercent: 0,
+    });
+  }
+
   for (const { key, content } of results) {
     if (key === "sprint") {
       totalFiles++;
@@ -158,6 +234,14 @@ export async function getBmadProject(
       const filename = storyPath.split("/").pop() || "";
       const story = parseStory(content, filename);
       if (story) {
+        const folderEpicId = epicIdByStoryPath.get(storyPath);
+        if (folderEpicId) {
+          // Story lives inside epic-N/ — fix epicId and (re)build composite id
+          story.epicId = folderEpicId;
+          if (!story.id.includes(".")) {
+            story.id = `${folderEpicId}.${story.id}`;
+          }
+        }
         rawStories.push(story);
       } else {
         parseErrors.push({ file: storyPath, error: "Failed to parse story. Check the markdown format and section structure.", contentType: "story" });
@@ -171,7 +255,11 @@ export async function getBmadProject(
     console.warn(`[BMAD Parse] ${owner}/${repo}: ${parseErrors.length} parsing errors out of ${totalFiles} files`);
   }
 
-  const { epics, stories } = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
+  const correlated = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
+  const epics = [...correlated.epics].sort(
+    (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0),
+  );
+  const stories = correlated.stories;
   const storyPathSet = new Set(storyPaths);
   const docPaths = bmadPaths.filter((p) => !storyPathSet.has(p));
   const fileTree = buildFileTree(docPaths, outputDir);

@@ -20,7 +20,7 @@ export function parseStory(
       id = `${numericMatch[1]}.${numericMatch[2]}`;
       epicId = numericMatch[1];
     } else if (legacyMatch) {
-      id = legacyMatch[1].replace(/[._]/, ".");
+      id = legacyMatch[1].replace(/[._-]/, ".");
       epicId = id.includes(".") ? id.split(".")[0] : "";
     } else {
       id = filename.replace(/\.md$/i, "");

@@ -110,6 +110,13 @@ export class LocalProvider implements ContentProvider {
     "_bmad-output",
   ]);
 
+  /** OS metadata files that should never appear in the project tree. */
+  private static IGNORED_FILES: ReadonlySet<string> = new Set([
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
+  ]);
+
   async getTree(): Promise<ContentProviderTree> {
     const paths: string[] = [];
     const rootDirectories: string[] = [];
@@ -150,6 +157,11 @@ export class LocalProvider implements ContentProvider {
         }
 
         if (!dirent.isFile()) {
+          continue;
+        }
+
+        // Skip OS metadata files (.DS_Store, Thumbs.db, etc.)
+        if (LocalProvider.IGNORED_FILES.has(dirent.name)) {
           continue;
         }
 

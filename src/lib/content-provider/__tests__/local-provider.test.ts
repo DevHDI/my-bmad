@@ -86,6 +86,19 @@ describe("LocalProvider", () => {
       expect(tree.rootDirectories).not.toContain("root.txt");
     });
 
+    it("filters out OS metadata files (.DS_Store, Thumbs.db)", async () => {
+      await writeFile("_bmad-output/real.md", "# Real");
+      await writeFile("_bmad-output/.DS_Store", "binary");
+      await writeFile("_bmad-output/sub/.DS_Store", "binary");
+      await writeFile("_bmad-output/sub/Thumbs.db", "binary");
+      await writeFile("_bmad-output/sub/desktop.ini", "binary");
+
+      const provider = new LocalProvider(tmpDir);
+      const tree = await provider.getTree();
+
+      expect(tree.paths).toEqual([path.join("_bmad-output", "real.md")]);
+    });
+
     it("respects maxFileCount limit", async () => {
       for (let i = 0; i < 5; i++) {
         await writeFile(`_bmad/file${i}.txt`);
