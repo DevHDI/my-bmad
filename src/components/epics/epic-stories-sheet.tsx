@@ -53,16 +53,24 @@ export function EpicStoriesSheet({
         className="w-full sm:max-w-2xl overflow-y-auto"
       >
         <SheetHeader className="border-b">
-          {inDetailView ? (
-            <button
-              type="button"
-              onClick={() => setSelectedStoryId(null)}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
-              aria-label="Back to stories list"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to stories
-            </button>
+          {inDetailView && selectedStory ? (
+            <>
+              {/* SheetTitle stays mounted for the Radix Dialog accessible
+                  name; the visible header in StoryDetailView already
+                  displays the same information for sighted users. */}
+              <SheetTitle className="sr-only">
+                Story {selectedStory.id}: {selectedStory.title}
+              </SheetTitle>
+              <button
+                type="button"
+                onClick={() => setSelectedStoryId(null)}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+                aria-label="Back to stories list"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to stories
+              </button>
+            </>
           ) : (
             <>
               <div className="flex items-center gap-3">
