@@ -132,6 +132,41 @@ status: in-progress
     });
   });
 
+  describe("statusExplicit flag", () => {
+    it("is true when status comes from frontmatter", () => {
+      const content = `---
+status: done
+---
+# Story`;
+      const result = parseStory(content, "1-1-test.md");
+      expect(result!.statusExplicit).toBe(true);
+    });
+
+    it("is true when status comes from a 'Status:' body line", () => {
+      const result = parseStory(
+        "# Story\n\nStatus: in-progress\n",
+        "1-1-test.md",
+      );
+      expect(result!.statusExplicit).toBe(true);
+    });
+
+    it("is false when no status is declared anywhere", () => {
+      const result = parseStory("# Just a title\n\nSome description", "1-1-test.md");
+      expect(result!.statusExplicit).toBe(false);
+      expect(result!.status).toBe("backlog"); // default fallback
+    });
+
+    it("is false when frontmatter exists but has no status field", () => {
+      const content = `---
+title: Foo
+epic_id: 1
+---
+# Story`;
+      const result = parseStory(content, "1-1-test.md");
+      expect(result!.statusExplicit).toBe(false);
+    });
+  });
+
   describe("error handling", () => {
     it("returns null on truly invalid content", () => {
       // parseStory is quite resilient, but we can test the fallback behavior

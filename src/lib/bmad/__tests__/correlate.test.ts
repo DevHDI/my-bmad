@@ -55,8 +55,23 @@ describe("correlate", () => {
     expect(result.stories[0].status).toBe("backlog");
   });
 
-  it("sprint status overrides story markdown status", () => {
-    const stories = [makeStory({ id: "1.1", status: "backlog" })];
+  it("markdown status wins over sprint-status when statusExplicit is true", () => {
+    const stories = [
+      makeStory({ id: "1.1", status: "in-progress", statusExplicit: true }),
+    ];
+    const epics = [makeEpic()];
+    const sprint: SprintStatus = {
+      stories: [{ id: "1.1", title: "1-1-test", status: "done", epicId: "1" }],
+    };
+
+    const result = correlate(sprint, epics, stories);
+    expect(result.stories[0].status).toBe("in-progress");
+  });
+
+  it("sprint-status fills in when story has no explicit status (back-compat)", () => {
+    const stories = [
+      makeStory({ id: "1.1", status: "backlog" /* statusExplicit undefined */ }),
+    ];
     const epics = [makeEpic()];
     const sprint: SprintStatus = {
       stories: [{ id: "1.1", title: "1-1-test", status: "done", epicId: "1" }],
@@ -129,9 +144,19 @@ describe("correlate", () => {
     expect(result.stories[0].epicTitle).toBe("My Epic");
   });
 
-  it("uses epicStatuses from sprint-status.yaml when provided", () => {
-    const stories = [makeStory({ id: "1.1", status: "backlog" })];
+  it("computed epic status wins over sprint-status epicStatuses when stories exist", () => {
+    // Stories say "in-progress" → sprint-status says "done" → computed wins.
+    const stories = [makeStory({ id: "1.1", status: "in-progress" })];
     const epics = [makeEpic()];
+    const epicStatuses = [{ id: "1", status: "done" as const }];
+
+    const result = correlate(null, epics, stories, epicStatuses);
+    expect(result.epics[0].status).toBe("in-progress");
+  });
+
+  it("falls back to sprint-status epicStatuses when epic has no stories", () => {
+    const stories: StoryDetail[] = [];
+    const epics = [makeEpic({ stories: [] })];
     const epicStatuses = [{ id: "1", status: "done" as const }];
 
     const result = correlate(null, epics, stories, epicStatuses);

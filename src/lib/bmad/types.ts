@@ -39,6 +39,12 @@ export interface StoryDetail {
   id: string;
   title: string;
   status: StoryStatus;
+  /**
+   * True when the story markdown declared a status explicitly (frontmatter
+   * `status:` or a `Status:` line in the body). When false, `status` came
+   * from the default fallback and sprint-status.yaml may override it.
+   */
+  statusExplicit?: boolean;
   epicId: string;
   epicTitle?: string;
   description: string;

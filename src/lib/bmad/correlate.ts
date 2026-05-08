@@ -27,16 +27,18 @@ export function correlate(
     storyMap.set(s.id, s);
   }
 
-  // Apply statuses from sprint-status.yaml to stories, and create stubs for
-  // stories that only exist in sprint-status (no markdown file).
+  // Story status priority: markdown frontmatter / "Status:" line wins.
+  // sprint-status.yaml is only used as a fallback when the story markdown
+  // declared no explicit status (statusExplicit !== true), and to populate
+  // stubs for stories that exist only in sprint-status.
   if (sprintStatus) {
     for (const entry of sprintStatus.stories) {
       const story = storyMap.get(entry.id);
       if (story) {
-        if (entry.status !== "unknown") {
+        if (story.statusExplicit !== true && entry.status !== "unknown") {
           story.status = entry.status;
         }
-        if (entry.epicId) {
+        if (!story.epicId && entry.epicId) {
           story.epicId = entry.epicId;
         }
       } else {
@@ -73,14 +75,23 @@ export function correlate(
     const completed = epicStories.filter((s) => s.status === "done").length;
     const total = epicStories.length;
 
-    // Use status from sprint-status.yaml if available, otherwise compute
-    let status: EpicStatus = epicStatusMap.get(epic.id) || "not-started";
-    if (!epicStatusMap.has(epic.id)) {
-      if (completed === total && total > 0) {
+    // Epic status priority: derive from the epic's stories first.
+    // sprint-status.yaml epic-level is only used as fallback when the epic
+    // has no stories at all (so we have no signal otherwise).
+    let status: EpicStatus;
+    if (total > 0) {
+      if (completed === total) {
         status = "done";
-      } else if (completed > 0 || epicStories.some((s) => s.status === "in-progress")) {
+      } else if (
+        completed > 0 ||
+        epicStories.some((s) => s.status === "in-progress")
+      ) {
         status = "in-progress";
+      } else {
+        status = "not-started";
       }
+    } else {
+      status = epicStatusMap.get(epic.id) || "not-started";
     }
 
     return {

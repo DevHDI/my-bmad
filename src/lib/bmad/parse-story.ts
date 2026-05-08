@@ -56,9 +56,9 @@ export function parseStory(
 
     // Extract status from "Status: done" line (plain text, not frontmatter)
     const statusLineMatch = body.match(/^Status:\s*(.+)/im);
-    const status = normalizeStoryStatus(
-      frontmatterStatus || statusLineMatch?.[1]?.trim()
-    );
+    const rawStatus = frontmatterStatus || statusLineMatch?.[1]?.trim();
+    const statusExplicit = Boolean(rawStatus);
+    const status = normalizeStoryStatus(rawStatus);
 
     // Extract acceptance criteria
     const acceptanceCriteria: string[] = [];
@@ -89,6 +89,7 @@ export function parseStory(
       id,
       title: String(title),
       status,
+      statusExplicit,
       epicId,
       description: body.trim().slice(0, 1000),
       acceptanceCriteria,
