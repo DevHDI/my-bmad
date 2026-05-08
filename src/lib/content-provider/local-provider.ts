@@ -8,6 +8,12 @@ interface LocalProviderOptions {
   maxFileSizeBytes?: number;
   maxFileCount?: number;
   maxDepth?: number;
+  /**
+   * Top-level directories the provider is allowed to walk and read from.
+   * Defaults to ["_bmad", "_bmad-output"]. Pass a different list when the
+   * project's BMAD config points to a custom output folder.
+   */
+  bmadDirs?: string[];
 }
 
 export class LocalProvider implements ContentProvider {
@@ -15,6 +21,7 @@ export class LocalProvider implements ContentProvider {
   private maxFileSizeBytes: number;
   private maxFileCount: number;
   private maxDepth: number;
+  private bmadDirs: Set<string>;
 
   constructor(rootPath: string, options?: LocalProviderOptions) {
     // Guard 1 — Feature flag
@@ -37,6 +44,31 @@ export class LocalProvider implements ContentProvider {
     this.maxFileCount =
       options?.maxFileCount ?? LOCAL_PROVIDER_DEFAULTS.maxFileCount;
     this.maxDepth = options?.maxDepth ?? LOCAL_PROVIDER_DEFAULTS.maxDepth;
+    this.bmadDirs = new Set(
+      options?.bmadDirs ?? Array.from(LocalProvider.DEFAULT_BMAD_DIRS),
+    );
+  }
+
+  /**
+   * Allow scanning an additional top-level directory (e.g. a custom output
+   * folder declared in `_bmad/core/config.yaml`). The name must be a single
+   * path segment — no slashes, no traversal, no leading dot.
+   */
+  extendBmadDirs(name: string): void {
+    if (
+      !name ||
+      name.includes("/") ||
+      name.includes("\\") ||
+      name === "." ||
+      name === ".." ||
+      name.startsWith(".")
+    ) {
+      throw new Error(`Invalid BMAD dir name: ${name}`);
+    }
+    if (LocalProvider.IGNORED_DIRS.has(name)) {
+      throw new Error(`Cannot extend into ignored dir: ${name}`);
+    }
+    this.bmadDirs.add(name);
   }
 
   async validateRoot(): Promise<void> {
@@ -72,8 +104,11 @@ export class LocalProvider implements ContentProvider {
     ".now",
   ]);
 
-  /** Directories to scan for BMAD content. Only these (and their children) are walked. */
-  private static BMAD_DIRS = new Set(["_bmad", "_bmad-output"]);
+  /** Default whitelist of top-level dirs containing BMAD content. */
+  private static DEFAULT_BMAD_DIRS: ReadonlySet<string> = new Set([
+    "_bmad",
+    "_bmad-output",
+  ]);
 
   async getTree(): Promise<ContentProviderTree> {
     const paths: string[] = [];
@@ -132,7 +167,7 @@ export class LocalProvider implements ContentProvider {
     };
 
     for (const dirName of rootDirectories) {
-      if (LocalProvider.BMAD_DIRS.has(dirName)) {
+      if (this.bmadDirs.has(dirName)) {
         await walk(path.join(this.resolvedRoot, dirName), 1);
       }
     }
@@ -184,7 +219,7 @@ export class LocalProvider implements ContentProvider {
 
     // Guard 7 — Restrict access to BMAD directories only
     const firstSegment = filePath.split(path.sep)[0];
-    if (!LocalProvider.BMAD_DIRS.has(firstSegment)) {
+    if (!this.bmadDirs.has(firstSegment)) {
       throw new Error("Access denied: only BMAD directories are accessible");
     }
   }

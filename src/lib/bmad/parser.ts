@@ -6,13 +6,13 @@ import { parseEpicFile } from "./parse-epic-file";
 import { parseStory } from "./parse-story";
 import { correlate, computeProjectStats } from "./correlate";
 import { buildFileTree } from "./utils";
+import { getBmadConfig, DEFAULT_OUTPUT_DIR } from "./parse-config";
 import type { RepoConfig } from "@/lib/types";
 import type { ParsedBmadFile, BmadFileMetadata } from "./types";
 import { normalizeStoryStatus } from "./utils";
 import matter from "gray-matter";
 import yaml from "js-yaml";
 
-const BMAD_OUTPUT = "_bmad-output";
 const PLANNING = "planning-artifacts";
 const IMPLEMENTATION = "implementation-artifacts";
 
@@ -26,10 +26,23 @@ export async function getBmadProject(
 ): Promise<BmadProject | null> {
   const { owner, name: repo, branch, displayName } = config;
 
-  const providerTree = await provider.getTree();
-  const allPaths = providerTree.paths;
+  let providerTree = await provider.getTree();
+  const { outputDir } = await getBmadConfig(provider, providerTree.paths);
 
-  const bmadPaths = allPaths.filter((p) => p.startsWith(BMAD_OUTPUT + "/"));
+  if (outputDir !== DEFAULT_OUTPUT_DIR && provider.extendBmadDirs) {
+    try {
+      provider.extendBmadDirs(outputDir);
+      providerTree = await provider.getTree();
+    } catch (e) {
+      console.warn(
+        `[BMAD Parse] Cannot extend whitelist to "${outputDir}":`,
+        e,
+      );
+    }
+  }
+
+  const allPaths = providerTree.paths;
+  const bmadPaths = allPaths.filter((p) => p.startsWith(outputDir + "/"));
 
   const sprintStatusPath = bmadPaths.find(
     (p) =>
@@ -161,7 +174,7 @@ export async function getBmadProject(
   const { epics, stories } = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
   const storyPathSet = new Set(storyPaths);
   const docPaths = bmadPaths.filter((p) => !storyPathSet.has(p));
-  const fileTree = buildFileTree(docPaths, BMAD_OUTPUT);
+  const fileTree = buildFileTree(docPaths, outputDir);
 
   // Detect a "Docs" folder (case-insensitive) via rootDirectories (F20)
   const docsFolderName = providerTree.rootDirectories.find(

@@ -10,6 +10,12 @@ export interface ContentProvider {
   getFileContent(filePath: string): Promise<string>;
   /** Verify that the root path exists and is accessible. Throws if not. */
   validateRoot(): Promise<void>;
+  /**
+   * Optionally allow the provider to scan an additional top-level directory
+   * (only meaningful for filesystem-based providers with a whitelist).
+   * No-op for providers without such a constraint.
+   */
+  extendBmadDirs?(name: string): void;
 }
 
 export const LOCAL_PROVIDER_DEFAULTS = {

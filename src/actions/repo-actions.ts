@@ -11,6 +11,7 @@ import {
 import { LocalProvider } from "@/lib/content-provider/local-provider";
 import { buildFileTree } from "@/lib/bmad/utils";
 import { parseBmadFile } from "@/lib/bmad/parser";
+import { getBmadConfig, DEFAULT_OUTPUT_DIR } from "@/lib/bmad/parse-config";
 import { prisma } from "@/lib/db/client";
 import { getAuthenticatedSession } from "@/lib/db/helpers";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -363,8 +364,17 @@ async function refreshLocalRepo(
     const provider = new LocalProvider(repoConfig.localPath);
     await provider.validateRoot();
 
-    const tree = await provider.getTree();
-    const totalFiles = tree.paths.filter((p) => p.startsWith("_bmad-output/")).length;
+    let tree = await provider.getTree();
+    const { outputDir } = await getBmadConfig(provider, tree.paths);
+    if (outputDir !== DEFAULT_OUTPUT_DIR) {
+      try {
+        provider.extendBmadDirs(outputDir);
+        tree = await provider.getTree();
+      } catch (e) {
+        console.warn(`[Refresh] Cannot extend whitelist to "${outputDir}":`, e);
+      }
+    }
+    const totalFiles = tree.paths.filter((p) => p.startsWith(outputDir + "/")).length;
 
     const now = new Date();
     await prisma.repo.update({
@@ -409,9 +419,29 @@ async function refreshGitHubRepo(
     recursive: "1",
   });
 
-  const totalFiles = tree.tree.filter(
-    (item) => item.type === "blob" && item.path?.startsWith("_bmad-output/")
-  ).length;
+  const allPaths = tree.tree
+    .filter((item) => item.type === "blob" && typeof item.path === "string")
+    .map((item) => item.path as string);
+
+  const ghProviderShim = {
+    async getTree() {
+      return { paths: allPaths, rootDirectories: [] };
+    },
+    async getFileContent(p: string) {
+      return getCachedUserRawContent(
+        octokit,
+        userId,
+        input.owner,
+        input.name,
+        syncBranch,
+        p,
+      );
+    },
+    async validateRoot() {},
+  };
+  const { outputDir } = await getBmadConfig(ghProviderShim, allPaths);
+
+  const totalFiles = allPaths.filter((p) => p.startsWith(outputDir + "/")).length;
 
   const now = new Date();
   await prisma.repo.update({
