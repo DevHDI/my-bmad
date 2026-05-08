@@ -31,7 +31,6 @@ import { checkRateLimit } from "@/lib/rate-limit";
 // GraphQL can handle ~30 repos per query safely (GitHub complexity limits)
 const GRAPHQL_BATCH_SIZE = 30;
 
-const BMAD_OUTPUT = "_bmad-output";
 const BMAD_CORE = "_bmad";
 
 // ---------------------------------------------------------------------------
@@ -368,17 +367,12 @@ async function refreshLocalRepo(
     const provider = new LocalProvider(repoConfig.localPath);
     await provider.validateRoot();
 
-    let tree = await provider.getTree();
-    const { outputDir } = await getBmadConfig(provider, tree.paths);
-    if (outputDir !== DEFAULT_OUTPUT_DIR) {
-      try {
-        provider.extendBmadDirs(outputDir);
-        tree = await provider.getTree();
-      } catch (e) {
-        console.warn(`[Refresh] Cannot extend whitelist to "${outputDir}":`, e);
-      }
-    }
-    const totalFiles = tree.paths.filter((p) => p.startsWith(outputDir + "/")).length;
+    const initialTree = await provider.getTree();
+    const { outputDir, paths } = await resolveBmadOutputDir(
+      provider,
+      initialTree.paths,
+    );
+    const totalFiles = paths.filter((p) => p.startsWith(outputDir + "/")).length;
 
     const now = new Date();
     await prisma.repo.update({
@@ -836,8 +830,12 @@ export async function importLocalFolder(input: {
     // F11: displayName fallback to raw basename
     const displayName = parsed.data.displayName ?? rawBasename;
 
-    const bmadOutputCount = providerTree.paths.filter(
-      (p) => p.startsWith("_bmad-output/")
+    const { outputDir, paths: scannedPaths } = await resolveBmadOutputDir(
+      provider,
+      providerTree.paths,
+    );
+    const bmadOutputCount = scannedPaths.filter((p) =>
+      p.startsWith(outputDir + "/"),
     ).length;
 
     const repo = await prisma.repo.create({
