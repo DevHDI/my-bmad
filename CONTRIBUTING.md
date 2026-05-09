@@ -166,4 +166,4 @@ chore(deps): upgrade Next.js to 16.2
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's **GNU AGPL v3** license.
+By contributing, you agree that your contributions will be licensed under the project's **MIT** license.

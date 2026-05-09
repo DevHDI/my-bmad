@@ -2,7 +2,7 @@
 
 A web dashboard - https://mybmad.hichem.cloud/ - to visualize and track [BMAD (Breakthrough Method of Agile AI-Driven Development)](https://github.com/bmad-method/bmad-method) projects from your GitHub repositories — or directly from local folders.
 
-> **License:** GNU AGPL v3 — see [LICENSE](./LICENSE) for details.
+> **License:** MIT — see [LICENSE](./LICENSE) for details.
 
 ---
 
@@ -195,12 +195,11 @@ Found a vulnerability? Please read our [SECURITY.md](./SECURITY.md) and report i
 
 ## License
 
-This project is licensed under the **GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**.
+This project is licensed under the **MIT License**.
 
-This means:
-- You are free to use, modify, and distribute this software
-- If you modify and deploy it as a network service (SaaS), you **must** publish your modified source code under the same license
-- See [LICENSE](./LICENSE) for the full license text
+You are free to use, modify, and distribute this software, including for
+commercial purposes, as long as the original copyright notice is preserved.
+See [LICENSE](./LICENSE) for the full license text.
 
 ---
 
