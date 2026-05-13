@@ -57,13 +57,14 @@ export function LoginForm({ githubEnabled, registrationEnabled }: LoginFormProps
           name: name.trim(),
         });
         if (result.error) {
+          // Use a single ambiguous message for all non-403 failures so the
+          // client cannot distinguish "email already registered" (422) from
+          // any other error — preventing account enumeration.
           const code = result.error.status;
           setError(
             code === 403
               ? "L'inscription est désactivée sur ce serveur."
-              : code === 422
-                ? "Un compte existe déjà avec cet email."
-                : "Erreur lors de l'inscription."
+              : "Erreur lors de l'inscription."
           );
           setLoading(false);
           return;
