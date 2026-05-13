@@ -51,6 +51,22 @@ export const auth = betterAuth({
         }
       }
     }),
+    after: createAuthMiddleware(async (ctx) => {
+      // Normalize sign-up errors to prevent account enumeration. Better
+      // Auth's default behavior returns HTTP 422 when the email is already
+      // registered, which lets an unauthenticated caller distinguish
+      // known-vs-unknown addresses by iterating a list. Collapse every
+      // non-FORBIDDEN failure into a single generic BAD_REQUEST so the
+      // response carries no signal about the email's existence.
+      //
+      // The FORBIDDEN branch (registration disabled) is preserved because
+      // it reflects a server-wide flag, not a per-email signal.
+      if (ctx.path !== "/sign-up/email") return;
+      const returned = ctx.context.returned;
+      if (returned instanceof APIError && returned.status !== "FORBIDDEN") {
+        throw new APIError("BAD_REQUEST", { message: "Sign-up failed" });
+      }
+    }),
   },
 });
 
