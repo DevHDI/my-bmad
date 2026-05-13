@@ -56,6 +56,7 @@ export function AddRepoDialog({
   const [loading, setLoading] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState("");
+  const [detectWarning, setDetectWarning] = useState("");
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState<string | null>(null);
   const [importError, setImportError] = useState("");
@@ -71,6 +72,7 @@ export function AddRepoDialog({
     if (!githubEnabled) return;
     setLoading(true);
     setError("");
+    setDetectWarning("");
     setRepos([]);
     setSearch("");
     setDetecting(false);
@@ -109,6 +111,15 @@ export function AddRepoDialog({
           });
           return updated;
         });
+      } else {
+        // Detection failed (rate limit, too many repos, transient GraphQL
+        // error). The list is still usable — show a non-blocking warning
+        // so the user understands BMAD badges may be missing.
+        setDetectWarning(
+          bmadResult.code === "LIMIT_EXCEEDED"
+            ? "Too many repositories to scan for BMAD — badges may be missing."
+            : "Could not detect BMAD repositories — badges may be missing."
+        );
       }
       setDetecting(false);
     }
@@ -210,6 +221,7 @@ export function AddRepoDialog({
                 loading={loading}
                 detecting={detecting}
                 error={error}
+                detectWarning={detectWarning}
                 importError={importError}
                 filtered={filtered}
                 importing={importing}
@@ -242,6 +254,7 @@ export function AddRepoDialog({
             loading={loading}
             detecting={detecting}
             error={error}
+            detectWarning={detectWarning}
             importError={importError}
             filtered={filtered}
             importing={importing}
@@ -264,6 +277,7 @@ function GitHubRepoList({
   loading,
   detecting,
   error,
+  detectWarning,
   importError,
   filtered,
   importing,
@@ -275,6 +289,7 @@ function GitHubRepoList({
   loading: boolean;
   detecting: boolean;
   error: string;
+  detectWarning: string;
   importError: string;
   filtered: GitHubRepo[];
   importing: string | null;
@@ -296,6 +311,11 @@ function GitHubRepoList({
 
       {error && <p className="text-destructive text-sm">{error}</p>}
       {importError && <p className="text-destructive text-sm">{importError}</p>}
+      {detectWarning && (
+        <p className="text-amber-600 dark:text-amber-400 text-xs">
+          {detectWarning}
+        </p>
+      )}
       {detecting && (
         <p className="text-muted-foreground text-xs animate-pulse">
           Detecting BMAD files...

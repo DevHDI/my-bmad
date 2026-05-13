@@ -33,11 +33,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 const GRAPHQL_BATCH_SIZE = 30;
 
 // Upper bound on the number of repos a single detectBmadRepos call may
-// process. Each batch above this would issue an additional sequential
-// GraphQL request, draining the user's GitHub rate quota and blocking the
-// event loop for an unbounded duration. 300 covers realistic accounts
-// (10 batches) while preventing accidental or hostile amplification.
-const MAX_DETECT_REPOS = 300;
+// process. Each batch above this issues an additional sequential GraphQL
+// request, draining the user's GitHub rate quota and blocking the event
+// loop. 2000 covers virtually every realistic GitHub account (orgs
+// included) while still preventing accidental or hostile amplification.
+// Callers that need to detect against larger lists should chunk
+// client-side and aggregate the results.
+const MAX_DETECT_REPOS = 2000;
 
 const BMAD_CORE = "_bmad";
 
