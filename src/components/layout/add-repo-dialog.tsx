@@ -332,9 +332,9 @@ function GitHubRepoList({
       )}
       {unknownDetectCount > 0 && (
         <p className="text-amber-600 dark:text-amber-400 text-xs">
-          BMAD detection failed for {unknownDetectCount} repositor
-          {unknownDetectCount === 1 ? "y" : "ies"} — these may be
-          mis-labelled as &ldquo;no BMAD&rdquo;.
+          BMAD detection failed for {unknownDetectCount}{" "}
+          {unknownDetectCount === 1 ? "repository" : "repositories"} —
+          these may be mis-labelled as &ldquo;no BMAD&rdquo;.
         </p>
       )}
       {detecting && (
