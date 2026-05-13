@@ -914,12 +914,19 @@ export async function listRepoBranches(input: {
     return { success: false, error: "Invalid input", code: "VALIDATION" };
   }
 
-  // F21: Guard — local repos don't have branches
+  // Scope guard: the repo must belong to the authenticated user before we
+  // proxy a GitHub call on their behalf. Without this, a null repoConfig
+  // (repo not registered for this user) silently falls through to the
+  // GitHub API using user-supplied owner/name.
   const repoConfig = await prisma.repo.findFirst({
     where: { userId, owner: parsed.data.owner, name: parsed.data.name },
     select: { sourceType: true },
   });
-  if (repoConfig?.sourceType === "local") {
+  if (!repoConfig) {
+    return { success: false, error: "Repository not found", code: "NOT_FOUND" };
+  }
+  // F21: Local repos don't have branches
+  if (repoConfig.sourceType === "local") {
     return { success: false, error: "Branch management is not available for local projects", code: "NOT_APPLICABLE" };
   }
 
