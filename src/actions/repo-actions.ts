@@ -406,8 +406,6 @@ async function refreshGitHubRepo(
   }
   const octokit = createUserOctokit(token);
 
-  revalidateTag(repoTag(input.owner, input.name), "default");
-
   // Use the branch already configured for this repo — don't override it
   const syncBranch = repoConfig.branch;
 
@@ -447,6 +445,12 @@ async function refreshGitHubRepo(
     where: { id: repoConfig.id },
     data: { lastSyncedAt: now, totalFiles },
   });
+
+  // Invalidate the cache only after the fetch and DB update succeed. If
+  // we did this before the fetch (as the previous version did), a
+  // network error or 4xx from GitHub would leave the cache invalidated
+  // with no recovery path until a future successful refresh.
+  revalidateTag(repoTag(input.owner, input.name), "default");
 
   return { success: true, data: { totalFiles, lastSyncedAt: now.toISOString() } };
 }
