@@ -732,8 +732,22 @@ export async function fetchFileContent(input: {
         const topSegment = outputDir.split("/")[0];
         try {
           provider.extendBmadDirs(topSegment);
-        } catch {
-          // Validation failed — fall through; getFileContent will deny if needed.
+        } catch (err) {
+          // The downstream getFileContent → assertSafePath check is
+          // authoritative: an unsuccessful extendBmadDirs simply leaves
+          // the whitelist unchanged, so a non-extended access is
+          // refused with "Access denied". This catch is observability
+          // only — surface the failed validation in logs instead of
+          // letting it disappear silently.
+          console.warn(
+            "[fetchFileContent] extendBmadDirs failed",
+            {
+              owner: parsed.data.owner,
+              name: parsed.data.name,
+              segment: topSegment,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          );
         }
       }
       content = await provider.getFileContent(requestedPath);
