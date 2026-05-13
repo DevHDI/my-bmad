@@ -32,6 +32,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 // GraphQL can handle ~30 repos per query safely (GitHub complexity limits)
 const GRAPHQL_BATCH_SIZE = 30;
 
+// Upper bound on the number of repos a single detectBmadRepos call may
+// process. Each batch above this would issue an additional sequential
+// GraphQL request, draining the user's GitHub rate quota and blocking the
+// event loop for an unbounded duration. 300 covers realistic accounts
+// (10 batches) while preventing accidental or hostile amplification.
+const MAX_DETECT_REPOS = 300;
+
 const BMAD_CORE = "_bmad";
 
 // ---------------------------------------------------------------------------
@@ -138,6 +145,14 @@ export async function detectBmadRepos(
 ): Promise<ActionResult<Record<string, boolean>>> {
   const authResult = await getAuthenticatedOctokit();
   if (!authResult.success) return authResult;
+
+  if (repoIds.length > MAX_DETECT_REPOS) {
+    return {
+      success: false,
+      error: `Too many repositories (max ${MAX_DETECT_REPOS})`,
+      code: "LIMIT_EXCEEDED",
+    };
+  }
 
   const { octokit } = authResult.data;
   const results: Record<string, boolean> = {};
