@@ -141,10 +141,18 @@ export async function listUserRepos(): Promise<ActionResult<GitHubRepo[]>> {
 
 /**
  * Phase 2: Detect BMAD via GraphQL (batch — ~30 repos per query).
+ *
+ * The result map distinguishes three states per repo:
+ *   - true  : BMAD content confirmed
+ *   - false : confirmed absence of BMAD content
+ *   - null  : detection failed for this repo (e.g. transient GraphQL
+ *             batch error). Letting the UI distinguish unknown from
+ *             confirmed-absent prevents silent "no BMAD" labels when
+ *             we actually have no information.
  */
 export async function detectBmadRepos(
   repoIds: { fullName: string; owner: string; name: string }[]
-): Promise<ActionResult<Record<string, boolean>>> {
+): Promise<ActionResult<Record<string, boolean | null>>> {
   const authResult = await getAuthenticatedOctokit();
   if (!authResult.success) return authResult;
 
@@ -157,7 +165,7 @@ export async function detectBmadRepos(
   }
 
   const { octokit } = authResult.data;
-  const results: Record<string, boolean> = {};
+  const results: Record<string, boolean | null> = {};
 
   for (let i = 0; i < repoIds.length; i += GRAPHQL_BATCH_SIZE) {
     const chunk = repoIds.slice(i, i + GRAPHQL_BATCH_SIZE);
@@ -196,8 +204,11 @@ export async function detectBmadRepos(
       console.warn(
         `[detectBmadRepos] GraphQL batch ${i / GRAPHQL_BATCH_SIZE + 1} failed: ${msg}`
       );
+      // Mark this batch as unknown rather than confirmed-absent so the
+      // UI can surface the detection gap. Coercing to false here would
+      // silently hide real BMAD repos behind a transient API hiccup.
       for (const repo of chunk) {
-        results[repo.fullName] = false;
+        results[repo.fullName] = null;
       }
     }
   }
