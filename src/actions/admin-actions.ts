@@ -24,7 +24,10 @@ export interface UsageMetrics {
   totalRepos: number;
   recentUsers: number;
   activeUsersLast30d: number;
-  parsingErrorRate: number;
+  // null = not yet tracked. The UI renders this as "N/A" so admins
+  // don't read 0% as "no parsing errors" when the data simply doesn't
+  // exist. Switch to number once a parsing-error log table is added.
+  parsingErrorRate: number | null;
 }
 
 // --- Error classes for control flow in transactions ---
@@ -176,7 +179,10 @@ export async function getUsageMetrics(): Promise<ActionResult<UsageMetrics>> {
         totalRepos,
         recentUsers,
         activeUsersLast30d: activeSessionUsers.length,
-        parsingErrorRate: 0, // MVP : pas de table de logs parsing — retourne 0
+        // MVP: no parsing-error log table exists yet. Returning null
+        // (rather than 0) keeps the UI honest — admins see "N/A"
+        // instead of a fabricated "0% errors" signal.
+        parsingErrorRate: null,
       },
     };
   } catch (error: unknown) {

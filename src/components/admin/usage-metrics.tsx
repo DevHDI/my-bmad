@@ -49,8 +49,12 @@ export function UsageMetrics({
       <StaggeredItem>
         <StatsCard
           title="Parsing Errors"
-          value={`${parsingErrorRate}%`}
-          description="Target KPI: < 1%"
+          value={parsingErrorRate === null ? "N/A" : `${parsingErrorRate}%`}
+          description={
+            parsingErrorRate === null
+              ? "Not yet tracked"
+              : "Target KPI: < 1%"
+          }
           icon={AlertTriangle}
           color="destructive"
         />
