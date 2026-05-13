@@ -57,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "prisma migrate deploy || echo 'Warning: migration skipped'; node server.js"]
+CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
