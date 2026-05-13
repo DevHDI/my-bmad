@@ -57,6 +57,7 @@ export function AddRepoDialog({
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState("");
   const [detectWarning, setDetectWarning] = useState("");
+  const [unknownDetectCount, setUnknownDetectCount] = useState(0);
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState<string | null>(null);
   const [importError, setImportError] = useState("");
@@ -73,6 +74,7 @@ export function AddRepoDialog({
     setLoading(true);
     setError("");
     setDetectWarning("");
+    setUnknownDetectCount(0);
     setRepos([]);
     setSearch("");
     setDetecting(false);
@@ -97,6 +99,14 @@ export function AddRepoDialog({
 
       const bmadResult = await detectBmadRepos(ids);
       if (bmadResult.success) {
+        // Per-repo null = detection failed for that batch. Surface the
+        // count so users see "X repos couldn't be scanned" rather than
+        // silently being told "no BMAD" for repos we never confirmed.
+        const unknownCount = Object.values(bmadResult.data).filter(
+          (v) => v === null,
+        ).length;
+        setUnknownDetectCount(unknownCount);
+
         setRepos((prev) => {
           const updated = prev.map((r) => ({
             ...r,
@@ -222,6 +232,7 @@ export function AddRepoDialog({
                 detecting={detecting}
                 error={error}
                 detectWarning={detectWarning}
+                unknownDetectCount={unknownDetectCount}
                 importError={importError}
                 filtered={filtered}
                 importing={importing}
@@ -255,6 +266,7 @@ export function AddRepoDialog({
             detecting={detecting}
             error={error}
             detectWarning={detectWarning}
+            unknownDetectCount={unknownDetectCount}
             importError={importError}
             filtered={filtered}
             importing={importing}
@@ -278,6 +290,7 @@ function GitHubRepoList({
   detecting,
   error,
   detectWarning,
+  unknownDetectCount,
   importError,
   filtered,
   importing,
@@ -290,6 +303,7 @@ function GitHubRepoList({
   detecting: boolean;
   error: string;
   detectWarning: string;
+  unknownDetectCount: number;
   importError: string;
   filtered: GitHubRepo[];
   importing: string | null;
@@ -314,6 +328,13 @@ function GitHubRepoList({
       {detectWarning && (
         <p className="text-amber-600 dark:text-amber-400 text-xs">
           {detectWarning}
+        </p>
+      )}
+      {unknownDetectCount > 0 && (
+        <p className="text-amber-600 dark:text-amber-400 text-xs">
+          BMAD detection failed for {unknownDetectCount} repositor
+          {unknownDetectCount === 1 ? "y" : "ies"} — these may be
+          mis-labelled as &ldquo;no BMAD&rdquo;.
         </p>
       )}
       {detecting && (
