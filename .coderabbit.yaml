@@ -1,0 +1,281 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "fr-FR"
+early_access: false
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  changed_files_summary: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  review_status: true
+  review_details: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  sequence_diagrams: true
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+  abort_on_close: true
+  disable_cache: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    base_branches:
+      - "main"
+    ignore_title_keywords:
+      - "wip"
+      - "draft"
+      - "do not review"
+      - "do-not-review"
+    labels:
+      - "!skip-review"
+
+  slop_detection:
+    enabled: true
+    label: "needs-triage"
+
+  labeling_instructions:
+    - label: "frontend"
+      instructions: "Apply when the PR changes React components, dashboard pages, Tailwind CSS, shadcn UI, layout, or UX behavior."
+    - label: "server-actions"
+      instructions: "Apply when the PR changes files in src/actions or mutates server-side data."
+    - label: "database"
+      instructions: "Apply when the PR changes Prisma schema, migrations, generated Prisma usage, or database helper code."
+    - label: "parser"
+      instructions: "Apply when the PR changes BMAD parsing, correlation, sanitization, or content-provider behavior."
+    - label: "security"
+      instructions: "Apply when the PR changes auth, sessions, GitHub tokens, local filesystem access, rate limits, secrets, Docker, or CI."
+    - label: "docs"
+      instructions: "Apply when the PR mainly changes README, docs, deployment guides, examples, or contributor documentation."
+
+  path_filters:
+    - "!_bmad/**"
+    - "!_bmad-output/**"
+    - "!.codex/**"
+    - "!.claude/**"
+    - "!.playwright-mcp/**"
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!coverage/**"
+    - "!data/**"
+    - "!src/generated/**"
+    - "!src/components/animate-ui/**"
+    - "!src/components/reui/**"
+    - "!docs/screen*.png"
+    - "!**/*.tsbuildinfo"
+    - "!next-env.d.ts"
+
+  path_instructions:
+    - path: "src/actions/**"
+      instructions: |
+        Review Next.js server actions for this project contract:
+        - Validate inputs with Zod at the top of the action before side effects.
+        - Return ActionResult<T> consistently: { success: true, data } or { success: false, error, code? }.
+        - Sanitize unexpected errors with sanitizeError() from "@/lib/errors"; do not expose error.message to clients.
+        - Use requireAdmin() from "@/lib/db/helpers" for admin-only mutations.
+        - Call revalidatePath() or revalidateTag() after successful mutations that affect cached UI.
+        - Check auth, rate limiting, GitHub token handling, and multi-user data isolation.
+
+    - path: "src/app/api/**"
+      instructions: |
+        Focus on Next.js App Router route-handler safety:
+        - Validate request inputs and environment-dependent secrets before use.
+        - Keep auth/session boundaries explicit and avoid leaking tokens or internal error details.
+        - For webhook or revalidation routes, verify timing-safe secret checks and cache invalidation scope.
+        - Prefer Response/NextResponse status codes that match the failure mode.
+
+    - path: "src/middleware.ts"
+      instructions: |
+        Review middleware changes for auth bypasses, redirect loops, protected-route coverage, and compatibility with Next.js App Router route groups.
+
+    - path: "src/lib/auth/**"
+      instructions: |
+        Review Better Auth configuration for secure session behavior, OAuth callback correctness, registration policy, secret/env handling, and safe client/server boundaries.
+
+    - path: "src/lib/db/**"
+      instructions: |
+        Review Prisma helper and client code for multi-user isolation, admin checks, transaction boundaries, N+1 queries, and accidental exposure of sensitive account/session fields.
+
+    - path: "prisma/**"
+      instructions: |
+        Review schema and migration changes together:
+        - Schema changes need a corresponding migration and Prisma client regeneration.
+        - Preserve existing data unless the migration explicitly and safely handles backfill or deletion.
+        - Check relations, cascades, uniqueness, indexes, and multi-user constraints.
+        - Production deployments must use prisma migrate deploy, never migrate dev.
+
+    - path: "src/lib/content-provider/**"
+      instructions: |
+        This area reads untrusted local filesystem content in self-hosted setups. Review especially hard for:
+        - Path traversal, symlink traversal, Unicode slash look-alikes, null bytes, hidden directories, and access outside the configured root.
+        - File count, file size, depth, and allowed-directory limits.
+        - Clear separation between GitHub-backed and local-folder content providers.
+        - Errors that should be sanitized before reaching clients.
+
+    - path: "src/lib/github/**"
+      instructions: |
+        Review Octokit and GitHub API code for OAuth token leakage, user-specific cache keys, retry/throttle behavior, rate-limit handling, branch/ref correctness, and GitHub API pagination/truncation edge cases.
+
+    - path: "src/lib/bmad/**"
+      instructions: |
+        Review BMAD parsers as untrusted-input parsers:
+        - Handle malformed Markdown, YAML frontmatter, JSON, sprint status, chunked epics, and missing files gracefully.
+        - Preserve existing parser contracts and typed return shapes.
+        - Prefer schema validation and sanitizer utilities over ad hoc string assumptions.
+        - Ask for Vitest coverage when parser behavior, edge cases, or correlations change.
+
+    - path: "src/components/**"
+      instructions: |
+        Review React UI code for accessibility, server/client component boundaries, hydration risks, keyboard navigation, loading/error/empty states, and responsive behavior.
+        Tailwind CSS v4 conventions for this repo:
+        - Do not use arbitrary bracket values when a canonical Tailwind class exists.
+        - Repeated colors should become theme tokens in src/app/globals.css.
+        - shadcn components in src/components/ui are project-owned and should follow the same rules.
+        Ignore style concerns for src/components/animate-ui and src/components/reui because they are excluded vendored components.
+
+    - path: "src/app/(dashboard)/**"
+      instructions: |
+        Review authenticated dashboard pages for server-side data access, cache invalidation assumptions, route params, suspense/loading behavior, empty states, and user isolation across repos.
+
+    - path: "src/app/globals.css"
+      instructions: |
+        This project uses Tailwind CSS v4 with @theme inline and no tailwind.config file. Review theme tokens, repeated colors, CSS variables, dark mode behavior, and avoid introducing one-off design values that should be tokens.
+
+    - path: "src/**/*.test.ts"
+      instructions: |
+        Tests use Vitest. Check that test names describe behavior, edge cases are covered, mocks do not hide integration bugs, and parser/security regressions have direct assertions.
+
+    - path: "src/**/__tests__/**"
+      instructions: |
+        Tests use Vitest. Check malformed input, auth/security boundaries, parser fallbacks, and multi-user isolation where relevant.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        Review CI for pnpm 10, Node 22, Prisma generate, lint, test, build, least-privilege permissions, secret safety, cache correctness, and pull_request behavior on public contributions.
+
+    - path: "Dockerfile"
+      instructions: |
+        Review Docker changes for production hardening, image size, non-root execution, secret handling, Prisma generation/migrations, health checks, and compatibility with Next.js standalone/build output.
+
+    - path: "docker/**"
+      instructions: |
+        Review Docker Compose and deployment docs for Traefik labels, TLS, networks, environment variables, persistent volumes, PostgreSQL safety, and production migration commands.
+
+    - path: "scripts/**"
+      instructions: |
+        Review scripts for idempotency, shell safety, secret generation/storage, clear failure modes, and compatibility with the documented local setup.
+
+    - path: "package.json"
+      instructions: |
+        Review dependency and script changes for security posture, duplicate tooling, Next/React/Prisma compatibility, and whether CI scripts still reflect the documented workflow.
+
+    - path: "pnpm-lock.yaml"
+      instructions: |
+        Only comment on dependency version changes that affect security, licenses, package provenance, or runtime compatibility. Do not comment on ordinary checksum or transitive lockfile churn.
+
+    - path: "docs/**"
+      instructions: |
+        Review docs for command accuracy, env var names, deployment safety, and consistency with package scripts, Docker files, Prisma workflow, and actual source behavior. Keep prose feedback high-signal.
+
+    - path: "README.md"
+      instructions: |
+        Review README changes for accurate quick-start commands, ports, feature claims, screenshots, links, and consistency with docs/GETTING_STARTED.md and docker/DEPLOY.md.
+
+  pre_merge_checks:
+    title:
+      mode: "warning"
+      requirements: "PR titles should be concise and descriptive; conventional prefixes such as feat:, fix:, docs:, chore:, refactor:, test:, and ci: are preferred."
+    description:
+      mode: "warning"
+    custom_checks:
+      - mode: "warning"
+        name: "Server action contract"
+        instructions: "Pass when every changed server action validates inputs with Zod, returns ActionResult<T>, sanitizes unexpected errors with sanitizeError(), and revalidates caches after mutations."
+      - mode: "warning"
+        name: "Auth and data isolation"
+        instructions: "Pass when changed auth, database, GitHub, and content-provider code cannot expose one user's repos, tokens, sessions, or local filesystem paths to another user."
+      - mode: "warning"
+        name: "Tailwind v4 conventions"
+        instructions: "Pass when changed UI code follows the repo Tailwind v4 guidance: canonical utility classes over arbitrary bracket values, repeated colors as globals.css theme tokens, and accessible responsive controls."
+
+  tools:
+    github-checks:
+      enabled: true
+      timeout_ms: 900000
+    eslint:
+      enabled: true
+    actionlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    hadolint:
+      enabled: true
+    checkov:
+      enabled: true
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    osvScanner:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    dotenvLint:
+      enabled: true
+    biome:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+  learnings:
+    scope: "local"
+  issues:
+    scope: "local"
+  pull_requests:
+    scope: "local"
+
+code_generation:
+  docstrings:
+    language: "en-US"
+    path_instructions:
+      - path: "src/**/*.ts"
+        instructions: "Prefer concise English comments only for non-obvious server-side logic, parsers, auth, filesystem guards, and cache behavior."
+      - path: "src/**/*.tsx"
+        instructions: "Avoid generating docstrings for simple React components. Prefer accessibility or behavior notes only when they clarify non-obvious interactions."
+  unit_tests:
+    path_instructions:
+      - path: "src/lib/bmad/**"
+        instructions: "Generate Vitest tests for malformed Markdown/YAML/JSON, missing fields, chunked epics, sprint status variants, and sanitizer edge cases."
+      - path: "src/lib/content-provider/**"
+        instructions: "Generate Vitest tests for path traversal, symlinks, Unicode slash look-alikes, null bytes, depth limits, file count limits, and allowed-directory boundaries."
+      - path: "src/actions/**"
+        instructions: "Generate Vitest tests around validation errors, auth failures, sanitized unexpected errors, and successful mutation revalidation behavior."
