@@ -5,6 +5,7 @@ import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Epic } from "@/lib/bmad/types";
+import { compareIds, getEpicShortId } from "@/lib/bmad/utils";
 
 interface EpicsListProps {
   epics: Epic[];
@@ -34,9 +35,7 @@ export function EpicsList({ epics, owner, repo }: EpicsListProps) {
     );
   }
 
-  const sorted = [...epics].sort(
-    (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0),
-  );
+  const sorted = [...epics].sort((a, b) => compareIds(a.id, b.id));
 
   return (
     <Card className="glass-card">
@@ -55,8 +54,8 @@ export function EpicsList({ epics, owner, repo }: EpicsListProps) {
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-xs font-mono text-muted-foreground shrink-0">
-                  E{epic.id}
+                <span className="text-xs font-mono text-muted-foreground shrink-0" title={epic.id}>
+                  {getEpicShortId(epic)}
                 </span>
                 <span className="font-medium truncate">
                   {epic.title}

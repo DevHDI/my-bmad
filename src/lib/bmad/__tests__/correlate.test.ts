@@ -162,4 +162,39 @@ describe("correlate", () => {
     const result = correlate(null, epics, stories, epicStatuses);
     expect(result.epics[0].status).toBe("done");
   });
+
+  it("backfills alphanumeric story epicId from explicit epic story references", () => {
+    const stories = [
+      makeStory({ id: "di.1", epicId: "di", status: "done" }),
+    ];
+    const epics = [
+      makeEpic({
+        id: "devops-infra",
+        title: "Pipeline Quality",
+        stories: ["di.1"],
+      }),
+    ];
+
+    const result = correlate(null, epics, stories);
+
+    expect(result.stories[0].epicId).toBe("devops-infra");
+    expect(result.stories[0].epicTitle).toBe("Pipeline Quality");
+    expect(result.epics[0].totalStories).toBe(1);
+    expect(result.epics[0].completedStories).toBe(1);
+  });
+
+  it("keeps story files that are not explicitly listed in an epic body", () => {
+    const stories = [
+      makeStory({ id: "4.1", epicId: "4", status: "done" }),
+    ];
+    const epics = [
+      makeEpic({ id: "4", stories: [] }),
+    ];
+
+    const result = correlate(null, epics, stories);
+
+    expect(result.stories).toHaveLength(1);
+    expect(result.stories[0].id).toBe("4.1");
+    expect(result.epics[0].totalStories).toBe(1);
+  });
 });

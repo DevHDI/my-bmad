@@ -69,6 +69,54 @@ describe("getBmadProject — nested output_folder", () => {
     expect(project!.stories).toHaveLength(1);
     expect(project!.stories[0].id).toBe("1.1");
   });
+
+  it("parses alphanumeric epics and stories inside a custom output dir", async () => {
+    let bmadDirs = new Set<string>(["_bmad", "_bmad-output"]);
+    const allFiles = {
+      "_bmad/core/config.yaml": `output_folder: "{project-root}/custom/out"`,
+      "custom/out/planning-artifacts/epics.md": [
+        "## Epic DevOps/Infra: Pipeline",
+        "- Story DI.1 - Setup CI",
+      ].join("\n"),
+      "custom/out/implementation-artifacts/DI-1-setup-ci.md": [
+        "# Story DI.1: Setup CI",
+        "Status: done",
+      ].join("\n"),
+    };
+    const provider: ContentProvider = {
+      async getTree() {
+        const visible = Object.keys(allFiles).filter((p) =>
+          bmadDirs.has(p.split("/")[0]),
+        );
+        return { paths: visible, rootDirectories: ["_bmad", "custom"] };
+      },
+      async getFileContent(p: string) {
+        if (!(p in allFiles)) throw new Error(`Not found: ${p}`);
+        return allFiles[p as keyof typeof allFiles];
+      },
+      async validateRoot() {},
+      extendBmadDirs(name: string) {
+        bmadDirs = new Set([...bmadDirs, name]);
+      },
+    };
+
+    const project = await getBmadProject(REPO, provider);
+
+    expect(project!.epics).toHaveLength(1);
+    expect(project!.epics[0]).toMatchObject({
+      id: "devops-infra",
+      title: "Pipeline",
+      totalStories: 1,
+      completedStories: 1,
+    });
+    expect(project!.stories).toHaveLength(1);
+    expect(project!.stories[0]).toMatchObject({
+      id: "di.1",
+      epicId: "devops-infra",
+      epicTitle: "Pipeline",
+      status: "done",
+    });
+  });
 });
 
 describe("getBmadProject — epic-folder layout", () => {
@@ -122,6 +170,42 @@ describe("getBmadProject — epic-folder layout", () => {
     expect(project!.stories).toHaveLength(1);
     expect(project!.stories[0].id).toBe("2.1");
     expect(project!.stories[0].epicId).toBe("2");
+  });
+
+  it("loads flat alphanumeric epic files from the epics directory", async () => {
+    const provider = makeProvider({
+      "_bmad-output/planning-artifacts/epics/epic-housekeeping.md": [
+        "## Epic Housekeeping: Cleanup",
+        "- Story HK.1 - Remove stale files",
+      ].join("\n"),
+      "_bmad-output/implementation-artifacts/HK-1-remove-stale-files.md": [
+        "# Story HK.1: Remove stale files",
+        "Status: in-progress",
+      ].join("\n"),
+    });
+
+    const project = await getBmadProject(REPO, provider);
+
+    expect(project!.epics).toHaveLength(1);
+    expect(project!.epics[0].id).toBe("housekeeping");
+    expect(project!.stories[0].epicId).toBe("housekeeping");
+  });
+
+  it("derives alphanumeric epic folders without requiring epic.md", async () => {
+    const provider = makeProvider({
+      "_bmad-output/planning-artifacts/epics/epic-devops-infra/story-1.md": [
+        "# Setup pipeline",
+        "Status: done",
+      ].join("\n"),
+    });
+
+    const project = await getBmadProject(REPO, provider);
+
+    expect(project!.epics).toHaveLength(1);
+    expect(project!.epics[0].id).toBe("devops-infra");
+    expect(project!.stories).toHaveLength(1);
+    expect(project!.stories[0].id).toBe("devops-infra.1");
+    expect(project!.stories[0].epicId).toBe("devops-infra");
   });
 
   it("injects epicId on stories whose filename does not encode it", async () => {

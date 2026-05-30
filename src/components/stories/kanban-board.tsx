@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StaggeredList, StaggeredItem } from "@/components/shared/staggered-list";
 import type { StoryDetail, StoryStatus } from "@/lib/bmad/types";
+import { getStoryShortId } from "@/lib/bmad/utils";
 
 const kanbanColumns: { status: StoryStatus; label: string; color: string }[] = [
   { status: "backlog", label: "Backlog", color: "bg-muted-foreground" },
@@ -55,8 +56,8 @@ export function KanbanBoard({ stories }: KanbanBoardProps) {
                       <span className="font-medium text-sm leading-tight">
                         {story.title}
                       </span>
-                      <span className="text-xs font-mono text-muted-foreground shrink-0">
-                        S{story.id}
+                      <span className="text-xs font-mono text-muted-foreground shrink-0" title={story.id}>
+                        S{getStoryShortId(story.id)}
                       </span>
                     </div>
                     {story.epicTitle && (

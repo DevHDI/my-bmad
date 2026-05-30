@@ -44,6 +44,48 @@ development_status:
       expect(result).not.toBeNull();
       expect(result!.sprintStatus.stories).toHaveLength(1);
     });
+
+    it("parses alphanumeric epic and story keys", () => {
+      const content = `
+development_status:
+  epic-devops-infra: in-progress
+  di-1-pipeline-setup: done
+  hk-2-cleanup: in-progress
+`;
+      const result = parseSprintStatus(content);
+
+      expect(result).not.toBeNull();
+      expect(result!.epicStatuses).toEqual([
+        { id: "devops-infra", status: "in-progress" },
+      ]);
+      expect(result!.sprintStatus.stories).toEqual([
+        {
+          id: "di.1",
+          title: "di-1-pipeline-setup",
+          status: "done",
+          epicId: "di",
+        },
+        {
+          id: "hk.2",
+          title: "hk-2-cleanup",
+          status: "in-progress",
+          epicId: "hk",
+        },
+      ]);
+    });
+
+    it("skips alphanumeric retrospective epic entries", () => {
+      const content = `
+development_status:
+  di-1-task: done
+  epic-devops-infra-retrospective: done
+`;
+      const result = parseSprintStatus(content);
+
+      expect(result).not.toBeNull();
+      expect(result!.epicStatuses).toHaveLength(0);
+      expect(result!.sprintStatus.stories).toHaveLength(1);
+    });
   });
 
   describe("legacy array format", () => {

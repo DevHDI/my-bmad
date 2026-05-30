@@ -1,4 +1,4 @@
-import { FileTreeNode, StoryStatus } from "./types";
+import { Epic, FileTreeNode, StoryStatus } from "./types";
 
 /**
  * Canonical normalizeStoryStatus used across all BMAD parsers.
@@ -70,4 +70,33 @@ export function normalizeStoryId(raw: string): string {
     .replace(/^(?:story|S)[_-]?/i, "")
     .replace(/[._]/, ".")
     .trim();
+}
+
+export function normalizeAlphanumericId(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\//g, "-");
+}
+
+export function compareIds(a: string, b: string): number {
+  return a.localeCompare(b, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+export function getEpicShortId(epic: Epic): string {
+  if (/^\d+$/.test(epic.id)) return epic.id;
+
+  const firstStoryId = epic.stories[0];
+  const prefix = firstStoryId?.split(".")[0];
+  if (prefix && prefix.length <= 4 && /[a-z]/i.test(prefix)) {
+    return prefix.toUpperCase();
+  }
+
+  return epic.id.slice(0, 2).toUpperCase();
+}
+
+export function getStoryShortId(storyId: string): string {
+  const parts = storyId.split(".");
+  if (parts.length > 1) return parts.slice(1).join(".");
+  return storyId;
 }

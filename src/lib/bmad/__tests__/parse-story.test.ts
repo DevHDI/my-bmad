@@ -22,6 +22,14 @@ describe("parseStory", () => {
       expect(result!.id).toBe("1.2");
       expect(result!.epicId).toBe("1");
     });
+
+    it("extracts ID from alpha-N-title.md format", () => {
+      const result = parseStory("# Story DI.1: Pipeline Setup\n\nContent", "DI-1-pipeline.md");
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe("di.1");
+      expect(result!.epicId).toBe("di");
+      expect(result!.title).toBe("Pipeline Setup");
+    });
   });
 
   describe("frontmatter parsing", () => {
@@ -41,13 +49,23 @@ epic_id: 3
 
     it("uses frontmatter id when present", () => {
       const content = `---
-id: 5.1
+id: DI.2
 status: in-progress
 ---
 # Story`;
       const result = parseStory(content, "1-1-test.md");
       expect(result).not.toBeNull();
-      expect(result!.id).toBe("5.1");
+      expect(result!.id).toBe("di.2");
+    });
+
+    it("normalizes alphanumeric frontmatter epic id", () => {
+      const content = `---
+epic_id: DevOps/Infra
+---
+# Story`;
+      const result = parseStory(content, "story-1.md");
+      expect(result).not.toBeNull();
+      expect(result!.epicId).toBe("devops-infra");
     });
   });
 

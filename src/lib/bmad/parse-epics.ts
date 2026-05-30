@@ -1,4 +1,5 @@
 import { Epic, EpicStatus } from "./types";
+import { normalizeAlphanumericId } from "./utils";
 
 export function parseEpics(content: string): { epics: Epic[]; error?: string } {
   try {
@@ -11,15 +12,16 @@ export function parseEpics(content: string): { epics: Epic[]; error?: string } {
 
     for (const line of lines) {
       const epicMatch = line.match(
-        /^##\s+(?:Epic\s+)?(\d+)[\s:.—-]+(.+)/i
+        /^##\s+(?:(?:Epic\s+)?(\d+)|Epic\s+([A-Za-z][A-Za-z0-9_/-]*))[\s:.—-]+(.+)/i
       );
       if (epicMatch) {
         if (currentEpic && currentEpic.id) {
           epics.push(finalizeEpic(currentEpic, descLines, storyIds));
         }
+        const rawId = epicMatch[1] ?? epicMatch[2];
         currentEpic = {
-          id: epicMatch[1],
-          title: epicMatch[2].trim(),
+          id: epicMatch[1] ? rawId : normalizeAlphanumericId(rawId),
+          title: epicMatch[3].trim(),
         };
         descLines = [];
         storyIds = [];
@@ -27,13 +29,14 @@ export function parseEpics(content: string): { epics: Epic[]; error?: string } {
       }
 
       if (currentEpic) {
-        const storyRef = line.match(/(?:story|S)[\s-]*(\d+(?:\.\d+)?)/gi);
-        if (storyRef) {
-          for (const ref of storyRef) {
-            const id = ref.replace(/(?:story|S)[\s-]*/i, "").trim();
-            if (id && !storyIds.includes(id)) {
-              storyIds.push(id);
-            }
+        const storyRef = line.matchAll(
+          /(?:story|S)[\s-]*((?:\d+(?:\.\d+)?)|(?:[A-Za-z][A-Za-z0-9_-]*\.\d+(?:\.\d+)?))/gi
+        );
+        for (const match of storyRef) {
+          const raw = match[1];
+          const id = /[A-Za-z]/.test(raw) ? raw.toLowerCase() : raw;
+          if (id && !storyIds.includes(id)) {
+            storyIds.push(id);
           }
         }
 
