@@ -136,8 +136,8 @@ export function StoriesTable({ stories }: StoriesTableProps) {
     initialState: { pagination: { pageSize: 20 } },
   });
 
-  const handleRowClick = (storyId: string) => {
-    router.push(`${pathname}/${storyId}`);
+  const handleRowClick = (story: StoryDetail) => {
+    router.push(`${pathname}/${story.id}`);
   };
 
   return (
@@ -150,7 +150,7 @@ export function StoriesTable({ stories }: StoriesTableProps) {
         headerBorder: true,
         rowBorder: true,
       }}
-      onRowClick={(row) => handleRowClick(row.original.id)}
+      onRowClick={handleRowClick}
     >
       <DataGridContainer>
         <DataGridTable />
