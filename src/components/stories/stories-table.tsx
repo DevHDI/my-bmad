@@ -9,6 +9,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   DataGrid,
   DataGridContainer,
@@ -121,6 +122,8 @@ interface StoriesTableProps {
 
 export function StoriesTable({ stories }: StoriesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const table = useReactTable({
     data: stories,
@@ -133,6 +136,10 @@ export function StoriesTable({ stories }: StoriesTableProps) {
     initialState: { pagination: { pageSize: 20 } },
   });
 
+  const handleRowClick = (storyId: string) => {
+    router.push(`${pathname}/${storyId}`);
+  };
+
   return (
     <DataGrid
       table={table}
@@ -143,6 +150,7 @@ export function StoriesTable({ stories }: StoriesTableProps) {
         headerBorder: true,
         rowBorder: true,
       }}
+      onRowClick={(row) => handleRowClick(row.original.id)}
     >
       <DataGridContainer>
         <DataGridTable />
