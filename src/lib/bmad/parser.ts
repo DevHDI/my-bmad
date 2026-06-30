@@ -4,6 +4,7 @@ import { parseSprintStatus } from "./parse-sprint-status";
 import { parseEpics } from "./parse-epics";
 import { parseEpicFile } from "./parse-epic-file";
 import { parseStory } from "./parse-story";
+import { parseDefect } from "./parse-defect";
 import { correlate, computeProjectStats } from "./correlate";
 import { buildFileTree, compareIds, normalizeStoryStatus } from "./utils";
 import { resolveBmadOutputDir } from "./parse-config";
@@ -116,8 +117,20 @@ export async function getBmadProject(
     ? []
     : epicFolders.filter((e) => !e.metaPath);
 
+  // Defects: files in implementation-artifacts/defects/ OR named defect-N/bug-N/df-N
+  const defectPaths = bmadPaths.filter((p) => {
+    if (!p.endsWith(".md")) return false;
+    const filename = p.split("/").pop() || "";
+    if (p.includes(`/${IMPLEMENTATION}/defects/`)) return true;
+    if (/^(?:defect|bug|df)[_-]\d/i.test(filename)) return true;
+    return false;
+  });
+  const defectPathSet = new Set(defectPaths);
+
   // Stories: implementation-artifacts (legacy) ∪ epic-folder-inner stories
+  // Defect-matched files are excluded even if they also match the story pattern.
   const implStoryPaths = bmadPaths.filter((p) => {
+    if (defectPathSet.has(p)) return false;
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
     const filename = p.split("/").pop() || "";
     if (/^epic[-_]/i.test(filename)) return false;
@@ -172,6 +185,15 @@ export async function getBmadProject(
     );
   }
 
+  for (const dp of defectPaths) {
+    fetches.push(
+      fetchContent(dp).then((content) => ({
+        key: `defect:${dp}`,
+        content,
+      }))
+    );
+  }
+
   const results = await Promise.all(fetches);
 
   const parseErrors: ParseErrorEntry[] = [];
@@ -181,6 +203,7 @@ export async function getBmadProject(
   let epicStatuses: { id: string; status: import("./types").EpicStatus }[] = [];
   let rawEpics: import("./types").Epic[] = [];
   const rawStories: NonNullable<ReturnType<typeof parseStory>>[] = [];
+  const rawDefects: NonNullable<ReturnType<typeof parseDefect>>[] = [];
 
   // Track the parsed epic that came from each folder's epic.md so we can
   // reconcile story epic-ids in case the frontmatter id differs from the
@@ -252,6 +275,16 @@ export async function getBmadProject(
       } else {
         parseErrors.push({ file: storyPath, error: "Failed to parse story. Check the markdown format and section structure.", contentType: "story" });
       }
+    } else if (key.startsWith("defect:")) {
+      totalFiles++;
+      const defectPath = key.replace("defect:", "");
+      const filename = defectPath.split("/").pop() || "";
+      const defect = parseDefect(content, filename);
+      if (defect) {
+        rawDefects.push(defect);
+      } else {
+        parseErrors.push({ file: defectPath, error: "Failed to parse defect file. Check the markdown format.", contentType: "defect" });
+      }
     }
   }
 
@@ -284,6 +317,18 @@ export async function getBmadProject(
   const correlated = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
   const epics = [...correlated.epics].sort((a, b) => compareIds(a.id, b.id));
   const stories = correlated.stories;
+
+  // Enrich defects with epicId derived from their linked story when not explicit
+  const storyMapFinal = new Map(stories.map((s) => [s.id, s]));
+  const defects = rawDefects.map((d) => {
+    if (!d.epicId && d.storyId) {
+      const linkedStory = storyMapFinal.get(d.storyId);
+      if (linkedStory?.epicId) {
+        return { ...d, epicId: linkedStory.epicId };
+      }
+    }
+    return d;
+  });
   const storyPathSet = new Set(storyPaths);
   const docPaths = bmadPaths.filter((p) => !storyPathSet.has(p));
   const fileTree = buildFileTree(docPaths, outputDir);
@@ -307,6 +352,7 @@ export async function getBmadProject(
     sprintStatus,
     epics,
     stories,
+    defects,
     fileTree,
     bmadFiles: bmadPaths,
     docsTree,
@@ -321,6 +367,7 @@ export async function getBmadProject(
     sprintStatus,
     epics,
     stories,
+    defects,
     fileTree,
     bmadFiles: bmadPaths,
     docsTree,

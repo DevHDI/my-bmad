@@ -1,15 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { StatusBadge } from "@/components/shared/status-badge";
+import { StatusBadge, SeverityBadge } from "@/components/shared/status-badge";
 import { MarkdownRenderer } from "@/components/docs/markdown-renderer";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Bug } from "lucide-react";
 import { SegmentedProgressBar } from "@/components/shared/segmented-progress-bar";
-import type { StoryDetail } from "@/lib/bmad/types";
+import type { Defect, StoryDetail } from "@/lib/bmad/types";
 
 interface StoryDetailViewProps {
   story: StoryDetail;
+  defects?: Defect[];
 }
 
-export function StoryDetailView({ story }: StoryDetailViewProps) {
+export function StoryDetailView({ story, defects = [] }: StoryDetailViewProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -82,6 +83,38 @@ export function StoryDetailView({ story }: StoryDetailViewProps) {
                   <span className={task.completed ? "text-muted-foreground line-through" : ""}>
                     {task.description}
                   </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+      {/* Defects */}
+      {defects.length > 0 && (
+        <Card className="glass-card">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Bug className="h-4 w-4 text-destructive" />
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Defects ({defects.length})
+              </h4>
+            </div>
+            <ul className="space-y-3">
+              {defects.map((defect) => (
+                <li key={defect.id} className="flex items-start justify-between gap-3 rounded-md border border-border/50 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-xs text-muted-foreground">{defect.id}</span>
+                      <span className="text-sm font-medium truncate">{defect.title}</span>
+                    </div>
+                    {defect.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{defect.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <SeverityBadge severity={defect.severity} compact />
+                    <StatusBadge status={defect.status} compact />
+                  </div>
                 </li>
               ))}
             </ul>

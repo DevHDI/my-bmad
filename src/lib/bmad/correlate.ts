@@ -1,4 +1,4 @@
-import { BmadProject, Epic, SprintStatus, StoryDetail, EpicStatus } from "./types";
+import { BmadProject, Defect, Epic, SprintStatus, StoryDetail, EpicStatus } from "./types";
 
 /**
  * Convert a sprint-status slug like "1-1-project-initialization" into
@@ -122,7 +122,7 @@ export function correlate(
   return { epics: enrichedEpics, stories: resultStories };
 }
 
-export function computeProjectStats(project: Omit<BmadProject, "totalStories" | "completedStories" | "inProgressStories" | "progressPercent">): {
+export function computeProjectStats(project: Omit<BmadProject, "totalStories" | "completedStories" | "inProgressStories" | "progressPercent"> & { defects?: Defect[] }): {
   totalStories: number;
   completedStories: number;
   inProgressStories: number;

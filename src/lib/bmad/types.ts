@@ -7,6 +7,9 @@ export type StoryStatus =
   | "backlog"
   | "unknown";
 
+export type DefectStatus = "open" | "in-progress" | "resolved" | "closed";
+export type DefectSeverity = "critical" | "high" | "medium" | "low";
+
 export type EpicStatus = "done" | "in-progress" | "not-started";
 
 export interface SprintStatus {
@@ -59,6 +62,17 @@ export interface StoryTask {
   completed: boolean;
 }
 
+export interface Defect {
+  id: string;
+  title: string;
+  status: DefectStatus;
+  severity: DefectSeverity;
+  storyId: string;
+  epicId?: string;
+  description: string;
+  stepsToReproduce: string[];
+}
+
 export interface FileTreeNode {
   name: string;
   path: string;
@@ -104,6 +118,7 @@ export interface BmadProject {
   sprintStatus: SprintStatus | null;
   epics: Epic[];
   stories: StoryDetail[];
+  defects: Defect[];
   fileTree: FileTreeNode[];
   bmadFiles: string[];
   docsTree: FileTreeNode[];
