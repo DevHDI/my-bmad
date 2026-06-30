@@ -137,7 +137,7 @@ export function StoriesTable({ stories }: StoriesTableProps) {
   });
 
   const handleRowClick = (story: StoryDetail) => {
-    router.push(`${pathname}/${story.id}`);
+    router.push(`${pathname}/${encodeURIComponent(story.id)}`);
   };
 
   return (
