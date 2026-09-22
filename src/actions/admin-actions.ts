@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/db/helpers";
 import { prisma } from "@/lib/db/client";
 import { z } from "zod";
-import type { ActionResult } from "@/lib/types";
+import type { ActionResult, UserRole } from "@/lib/types";
 import { sanitizeError } from "@/lib/errors";
 
 // --- Types ---
@@ -14,7 +14,7 @@ export interface AdminUser {
   name: string | null;
   email: string;
   image: string | null;
-  role: string;
+  role: UserRole;
   createdAt: Date;
   _count: { repos: number };
 }
