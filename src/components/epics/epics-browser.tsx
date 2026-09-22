@@ -13,6 +13,7 @@ import { StoryDetailView } from "./story-detail-view";
 import { useBreadcrumb } from "@/contexts/breadcrumb-context";
 import { ArrowLeft, GanttChartSquare, Columns3 } from "lucide-react";
 import type { Epic, StoryDetail } from "@/lib/bmad/types";
+import { getEpicShortId, getStoryShortId } from "@/lib/bmad/utils";
 
 type EpicsLayout = "timeline" | "kanban";
 
@@ -107,17 +108,17 @@ export function EpicsBrowser({
     } else if (view === "stories" && selectedEpic) {
       segments.push({ label: "Epics", onClick: goToEpics });
       segments.push({
-        label: `Epic ${selectedEpic.id}`,
+        label: `Epic ${getEpicShortId(selectedEpic)}`,
       });
     } else if (view === "story" && selectedEpic) {
       segments.push({ label: "Epics", onClick: goToEpics });
       segments.push({
-        label: `Epic ${selectedEpic.id}`,
+        label: `Epic ${getEpicShortId(selectedEpic)}`,
         onClick: () => goToStories(selectedEpic.id),
       });
       if (selectedStory) {
         segments.push({
-          label: `Story ${selectedStory.id}`,
+          label: `Story ${getStoryShortId(selectedStory.id)}`,
         });
       }
     }
@@ -162,7 +163,7 @@ export function EpicsBrowser({
       return (
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Epic {selectedEpic.id}: {selectedEpic.title}
+            Epic {getEpicShortId(selectedEpic)}: {selectedEpic.title}
           </h1>
           <p className="text-muted-foreground mt-1">
             {epicStories.length} stories
@@ -247,8 +248,8 @@ export function EpicsBrowser({
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                        {selectedEpic.id}
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary" title={selectedEpic.id}>
+                        {getEpicShortId(selectedEpic)}
                       </span>
                       <h3 className="text-lg font-semibold">
                         {selectedEpic.title}
@@ -309,8 +310,8 @@ export function EpicsBrowser({
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                            {story.id}
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0" title={story.id}>
+                            {getStoryShortId(story.id)}
                           </span>
                           <span className="font-medium truncate">
                             {story.title}

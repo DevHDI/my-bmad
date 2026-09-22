@@ -1,3 +1,5 @@
+import { normalizeAlphanumericId } from "./utils";
+
 export interface EpicFolderName {
   id: string;
   title: string;
@@ -14,13 +16,19 @@ export interface EpicFolderName {
  *   epic-1-project-foundation    → { id: "1", title: "Project Foundation" }
  *   epic_1_project_foundation    → { id: "1", title: "Project Foundation" }
  *   1-project-foundation         → { id: "1", title: "Project Foundation" }
+ *   epic-devops-infra            → { id: "devops-infra", title: "" }
  */
 export function parseEpicFolderName(folderName: string): EpicFolderName | null {
   const trimmed = folderName.trim();
   if (!trimmed) return null;
 
   const match = trimmed.match(/^(?:epic[_-]?)?(\d+)(?:[_-]+(.+))?$/i);
-  if (!match) return null;
+  if (!match) {
+    const alphaMatch = trimmed.match(/^epic[_-]([a-z][a-z0-9_-]*)$/i);
+    if (!alphaMatch) return null;
+
+    return { id: normalizeAlphanumericId(alphaMatch[1]), title: "" };
+  }
 
   const id = match[1];
   const slug = match[2] ?? "";

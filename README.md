@@ -14,6 +14,7 @@ A web dashboard - https://mybmad.hichem.cloud/ - to visualize and track [BMAD (B
 - [Project Structure](#project-structure)
 - [Available Scripts](#available-scripts)
 - [Production Deployment](#production-deployment-docker)
+- [Epic and Story Naming](#epic-and-story-naming)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -165,6 +166,27 @@ The stack includes:
 - **Next.js** application container
 - **PostgreSQL** database
 - **Traefik** reverse proxy with automatic Let's Encrypt TLS
+
+---
+
+## Epic and Story Naming
+
+MyBMAD supports numeric IDs and explicit alphanumeric epic/story prefixes.
+
+| Artifact | Example | Parsed ID |
+|----------|---------|-----------|
+| Epic heading | `## Epic 1: Foundation` | `1` |
+| Epic heading | `## Epic DevOps/Infra: Pipeline` | `devops-infra` |
+| Epic file | `planning-artifacts/epics/epic-housekeeping.md` | `housekeeping` |
+| Story file | `implementation-artifacts/1-2-setup.md` | `1.2` |
+| Story file | `implementation-artifacts/DI-1-pipeline.md` | `di.1` |
+| Sprint status | `epic-devops-infra: in-progress` | `devops-infra` |
+
+For alphanumeric epic headings, the `Epic` keyword is required so ordinary
+headings like `## Introduction: Overview` are not parsed as epics. When an
+epic ID such as `devops-infra` lists stories like `DI.1`, MyBMAD links those
+stories back to the epic without requiring destructive filtering of unlisted
+story files.
 
 ---
 

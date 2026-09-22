@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { GitBranch, FolderOpen, BookOpen, Layers } from "lucide-react";
 import type { BmadProject, Epic } from "@/lib/bmad/types";
+import { getEpicShortId } from "@/lib/bmad/utils";
 
 interface RepoCardProps {
   project: BmadProject;
@@ -19,6 +20,8 @@ function getBarColor(percent: number) {
 }
 
 function EpicSummaryRow({ epic }: { epic: Epic }) {
+  const shortId = getEpicShortId(epic);
+
   return (
     <div className="flex items-center gap-2">
       <StatusBadge status={epic.status} compact />
@@ -26,7 +29,7 @@ function EpicSummaryRow({ epic }: { epic: Epic }) {
         className="text-xs text-muted-foreground truncate min-w-0 flex-1"
         title={`${epic.id}. ${epic.title}`}
       >
-        {epic.id}. {epic.title}
+        {shortId}. {epic.title}
       </span>
       <span className="text-xs text-muted-foreground whitespace-nowrap">
         {epic.completedStories}/{epic.totalStories}

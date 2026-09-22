@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { SegmentedProgressBar } from "@/components/shared/segmented-progress-bar";
 import type { Epic } from "@/lib/bmad/types";
+import { getEpicShortId } from "@/lib/bmad/utils";
 
 function getProgressColor(percent: number) {
   return percent >= 100 ? "bg-success" : "bg-warning";
@@ -32,8 +33,8 @@ export function EpicTimelineCard({ epic, onClick }: EpicTimelineCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                {epic.id}
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary" title={epic.id}>
+                {getEpicShortId(epic)}
               </span>
               <h3 className="font-semibold">{epic.title}</h3>
             </div>

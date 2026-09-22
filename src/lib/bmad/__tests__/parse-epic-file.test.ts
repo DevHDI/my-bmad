@@ -139,4 +139,30 @@ title: Test
     const epic = parseEpicFile(content, "epic-1.md");
     expect(epic!.stories).toEqual(["1.1", "1.2", "1.3"]);
   });
+
+  it("extracts alphanumeric id from explicit epic filename", () => {
+    const epic = parseEpicFile("Some content", "epic-devops-infra.md");
+
+    expect(epic).not.toBeNull();
+    expect(epic!.id).toBe("devops-infra");
+  });
+
+  it("extracts alphanumeric id from heading with Epic keyword", () => {
+    const content = `## Epic DevOps/Infra: Pipeline Quality
+
+Automation foundation.
+- Story DI.1 - First
+- S DI.2 - Second
+`;
+    const epic = parseEpicFile(content, "unknown.md");
+
+    expect(epic).not.toBeNull();
+    expect(epic!.id).toBe("devops-infra");
+    expect(epic!.title).toBe("Pipeline Quality");
+    expect(epic!.stories).toEqual(["di.1", "di.2"]);
+  });
+
+  it("does not infer alphanumeric epic ids from generic filenames", () => {
+    expect(parseEpicFile("Some content", "readme.md")).toBeNull();
+  });
 });

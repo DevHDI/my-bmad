@@ -14,6 +14,7 @@ import { SegmentedProgressBar } from "@/components/shared/segmented-progress-bar
 import { StoryDetailView } from "./story-detail-view";
 import { ArrowLeft } from "lucide-react";
 import type { Epic, StoryDetail } from "@/lib/bmad/types";
+import { getEpicShortId, getStoryShortId } from "@/lib/bmad/utils";
 
 interface EpicStoriesSheetProps {
   open: boolean;
@@ -74,8 +75,8 @@ export function EpicStoriesSheet({
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                  {epic.id}
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0" title={epic.id}>
+                  {getEpicShortId(epic)}
                 </span>
                 <SheetTitle className="text-lg">{epic.title}</SheetTitle>
               </div>
@@ -136,8 +137,8 @@ export function EpicStoriesSheet({
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
-                          {story.id}
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0" title={story.id}>
+                          {getStoryShortId(story.id)}
                         </span>
                         <span className="font-medium text-sm truncate">
                           {story.title}
