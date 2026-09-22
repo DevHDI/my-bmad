@@ -138,6 +138,15 @@ describe("middleware CSP", () => {
     expect(cspOf(res)).toContain("report-uri /api/csp-report");
   });
 
+  it("omits upgrade-insecure-requests while report-only", () => {
+    // Browsers ignore the directive in a report-only policy and log a console
+    // error on every page load saying so.
+    delete process.env.CSP_ENFORCE;
+    const res = middleware(createRequest("/dashboard", SESSION_COOKIE));
+
+    expect(cspOf(res)).not.toContain("upgrade-insecure-requests");
+  });
+
   it("covers redirects too", () => {
     const res = middleware(createRequest("/dashboard"));
 

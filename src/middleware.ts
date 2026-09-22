@@ -23,7 +23,11 @@ function withCsp(
   build: (init?: { request: { headers: Headers } }) => NextResponse
 ): NextResponse {
   const nonce = generateNonce();
-  const csp = buildCsp(nonce, process.env.NODE_ENV === "development");
+  const enforced = isCspEnforced();
+  const csp = buildCsp(nonce, {
+    isDev: process.env.NODE_ENV === "development",
+    enforced,
+  });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
@@ -32,9 +36,7 @@ function withCsp(
   const response = build({ request: { headers: requestHeaders } });
 
   response.headers.set(
-    isCspEnforced()
-      ? "Content-Security-Policy"
-      : "Content-Security-Policy-Report-Only",
+    enforced ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only",
     csp
   );
   response.headers.set("Reporting-Endpoints", buildReportingEndpoints());

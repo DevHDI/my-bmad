@@ -29,7 +29,13 @@ export function generateNonce(): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
-export function buildCsp(nonce: string, isDev: boolean): string {
+export interface CspOptions {
+  isDev: boolean;
+  /** Whether the policy will be delivered as enforcing rather than report-only. */
+  enforced: boolean;
+}
+
+export function buildCsp(nonce: string, { isDev, enforced }: CspOptions): string {
   const directives = [
     "default-src 'self'",
 
@@ -64,8 +70,10 @@ export function buildCsp(nonce: string, isDev: boolean): string {
     `report-uri ${CSP_REPORT_PATH}`,
   ];
 
-  // Would break plain-http local development.
-  if (!isDev) directives.push("upgrade-insecure-requests");
+  // Browsers ignore this directive in a report-only policy and log a console
+  // error saying so, so only emit it once the policy actually enforces. It
+  // would also break plain-http local development.
+  if (!isDev && enforced) directives.push("upgrade-insecure-requests");
 
   return directives.join("; ");
 }
