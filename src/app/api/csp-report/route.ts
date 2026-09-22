@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * exists. Everything below therefore assumes the body is hostile.
  */
 
-/** Reports are small; anything larger is not a browser. */
+/** Reports are small; anything larger is not a browser. Counted in bytes. */
 const MAX_BODY_BYTES = 16_000;
 
 /** Cap what a single report can write to the logs. */
@@ -84,6 +84,48 @@ function extractViolations(body: unknown): Violation[] {
   return [];
 }
 
+/**
+ * Read the body while enforcing a byte ceiling.
+ *
+ * `request.text()` would buffer everything before any check, so a chunked
+ * request with no `content-length` could spend arbitrary memory first. Reading
+ * the stream lets the connection be cancelled as soon as the limit is passed.
+ * The count is in bytes: `String.length` counts UTF-16 units, so a multi-byte
+ * body would slip well past a limit expressed in bytes.
+ *
+ * Returns null when the body is too large.
+ */
+async function readBoundedBody(
+  request: NextRequest,
+  maxBytes: number
+): Promise<string | null> {
+  if (!request.body) return "";
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(body);
+}
+
 export async function POST(request: NextRequest) {
   // Anonymous global quota. Per-IP would be pointless here: reports carry no
   // credentials and x-forwarded-for is spoofable, so one shared ceiling is the
@@ -97,8 +139,8 @@ export async function POST(request: NextRequest) {
     return new NextResponse(null, { status: 413 });
   }
 
-  const raw = await request.text();
-  if (raw.length > MAX_BODY_BYTES) {
+  const raw = await readBoundedBody(request, MAX_BODY_BYTES);
+  if (raw === null) {
     return new NextResponse(null, { status: 413 });
   }
 
