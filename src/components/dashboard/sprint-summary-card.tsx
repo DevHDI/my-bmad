@@ -3,6 +3,7 @@ import { ProgressRing } from "@/components/shared/progress-ring";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Info, Calendar } from "lucide-react";
 import type { SprintStatus, StoryStatus } from "@/lib/bmad/types";
+import { compareIds } from "@/lib/bmad/utils";
 
 interface SprintSummaryCardProps {
   sprintStatus: SprintStatus | null;
@@ -53,12 +54,9 @@ export function SprintSummaryCard({
     byEpic.set(epicKey, entry);
   }
 
-  // Sort epics numerically
-  const sortedEpics = [...byEpic.entries()].sort((a, b) => {
-    const numA = parseInt(a[0], 10) || 0;
-    const numB = parseInt(b[0], 10) || 0;
-    return numA - numB;
-  });
+  const sortedEpics = [...byEpic.entries()].sort((a, b) =>
+    compareIds(a[0], b[0]),
+  );
 
   return (
     <Card className="glass-card">

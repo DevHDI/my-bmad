@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { SegmentedProgressBar } from "@/components/shared/segmented-progress-bar";
 import { StaggeredList, StaggeredItem } from "@/components/shared/staggered-list";
 import type { Epic, EpicStatus } from "@/lib/bmad/types";
+import { getEpicShortId } from "@/lib/bmad/utils";
 
 const kanbanColumns: { status: EpicStatus; label: string; color: string }[] = [
   { status: "not-started", label: "Planning", color: "bg-muted-foreground" },
@@ -63,8 +64,8 @@ export function EpicsKanban({ epics, onSelectEpic }: EpicsKanbanProps) {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                          {epic.id}
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0" title={epic.id}>
+                          {getEpicShortId(epic)}
                         </span>
                         <span className="font-medium text-sm leading-tight truncate">
                           {epic.title}

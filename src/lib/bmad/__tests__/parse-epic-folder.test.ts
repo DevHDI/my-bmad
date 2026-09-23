@@ -56,6 +56,13 @@ describe("parseEpicFolderName", () => {
     });
   });
 
+  it("parses explicit alphanumeric epic folder ids", () => {
+    expect(parseEpicFolderName("epic-DevOps-Infra")).toEqual({
+      id: "devops-infra",
+      title: "",
+    });
+  });
+
   it("returns null for non-matching folder names", () => {
     expect(parseEpicFolderName("not-an-epic")).toBeNull();
     expect(parseEpicFolderName("foo-1")).toBeNull();

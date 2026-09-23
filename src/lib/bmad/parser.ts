@@ -5,12 +5,11 @@ import { parseEpics } from "./parse-epics";
 import { parseEpicFile } from "./parse-epic-file";
 import { parseStory } from "./parse-story";
 import { correlate, computeProjectStats } from "./correlate";
-import { buildFileTree } from "./utils";
+import { buildFileTree, compareIds, normalizeStoryStatus } from "./utils";
 import { resolveBmadOutputDir } from "./parse-config";
 import { parseEpicFolderName } from "./parse-epic-folder";
 import type { RepoConfig } from "@/lib/types";
 import type { ParsedBmadFile, BmadFileMetadata } from "./types";
-import { normalizeStoryStatus } from "./utils";
 import matter from "gray-matter";
 import yaml from "js-yaml";
 
@@ -64,7 +63,9 @@ export async function getBmadProject(
     const rel = p.slice(idx + ("/" + PLANNING + "/epics/").length);
     const parts = rel.split("/");
     if (parts.length === 1) {
-      if (/^(?:epic[_-]?)?\d+/i.test(parts[0])) flatEpicPaths.push(p);
+      if (/^(?:(?:epic[_-]?)?\d+|epic[_-][a-z][a-z0-9_-]*)/i.test(parts[0])) {
+        flatEpicPaths.push(p);
+      }
     } else {
       const folder = parts[0];
       if (!folderEpicMap.has(folder)) folderEpicMap.set(folder, []);
@@ -119,7 +120,10 @@ export async function getBmadProject(
   const implStoryPaths = bmadPaths.filter((p) => {
     if (!p.includes(IMPLEMENTATION) || !p.endsWith(".md")) return false;
     const filename = p.split("/").pop() || "";
+    if (/^epic[-_]/i.test(filename)) return false;
+    if (/^bmad[-_]/i.test(filename)) return false;
     if (/^\d+-\d+-.+\.md$/.test(filename)) return true;
+    if (/^[a-z][a-z0-9_-]*-\d+-.+\.md$/i.test(filename)) return true;
     if (/^story[_-]?\d/i.test(filename)) return true;
     return false;
   });
@@ -278,9 +282,7 @@ export async function getBmadProject(
   }
 
   const correlated = correlate(sprintStatus, rawEpics, rawStories, epicStatuses);
-  const epics = [...correlated.epics].sort(
-    (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0),
-  );
+  const epics = [...correlated.epics].sort((a, b) => compareIds(a.id, b.id));
   const stories = correlated.stories;
   const storyPathSet = new Set(storyPaths);
   const docPaths = bmadPaths.filter((p) => !storyPathSet.has(p));

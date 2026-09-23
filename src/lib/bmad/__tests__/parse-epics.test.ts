@@ -73,4 +73,41 @@ Description of second epic.
     const result = parseEpics(content);
     expect(result.epics[0].stories).toEqual(["1.1"]);
   });
+
+  it("parses alphanumeric epic headings only when Epic keyword is present", () => {
+    const content = `## Epic DevOps/Infra: Pipeline Quality
+- Story DI.1 - First task
+- Story DI.2 - Second task
+### Story DI.3: Third task
+
+## Introduction: Overview
+This is not an epic.
+`;
+    const result = parseEpics(content);
+
+    expect(result.epics).toHaveLength(1);
+    expect(result.epics[0].id).toBe("devops-infra");
+    expect(result.epics[0].title).toBe("Pipeline Quality");
+    expect(result.epics[0].stories).toEqual(["di.1", "di.2", "di.3"]);
+  });
+
+  it("parses mixed numeric and alphanumeric epics in sequence", () => {
+    const content = `## Epic 1: Foundation
+- Story 1.1 - Init
+
+## Epic Housekeeping: Cleanup
+- Story HK.1 - Remove stale files
+
+## Epic 2: Features
+- Story 2.1 - Auth
+`;
+    const result = parseEpics(content);
+
+    expect(result.epics.map((epic) => epic.id)).toEqual([
+      "1",
+      "housekeeping",
+      "2",
+    ]);
+    expect(result.epics[1].stories).toEqual(["hk.1"]);
+  });
 });
