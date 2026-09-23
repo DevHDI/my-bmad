@@ -62,6 +62,9 @@ export function EpicStoriesSheet({
               <SheetTitle className="sr-only">
                 Story {selectedStory.id}: {selectedStory.title}
               </SheetTitle>
+              <SheetDescription className="sr-only">
+                Full details for story {selectedStory.id} of epic {epic.title}.
+              </SheetDescription>
               <button
                 type="button"
                 onClick={() => setSelectedStoryId(null)}
@@ -80,11 +83,12 @@ export function EpicStoriesSheet({
                 </span>
                 <SheetTitle className="text-lg">{epic.title}</SheetTitle>
               </div>
-              {epic.description && (
-                <SheetDescription className="ml-11">
-                  {epic.description}
-                </SheetDescription>
-              )}
+              <SheetDescription
+                className={epic.description ? "ml-11" : "sr-only"}
+              >
+                {epic.description ||
+                  `Stories tracked in epic ${epic.title}, with progress and status for each one.`}
+              </SheetDescription>
               <div className="ml-11 mt-2 space-y-1.5">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>

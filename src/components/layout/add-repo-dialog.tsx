@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -210,6 +211,13 @@ export function AddRepoDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add a project</DialogTitle>
+          <DialogDescription>
+            {showTabs
+              ? "Import a BMAD project from one of your GitHub repositories, or from a folder on this machine."
+              : localFsEnabled
+                ? "Enter the path to a local folder that contains a BMAD project."
+                : "Search your GitHub repositories and pick the one that contains the BMAD project."}
+          </DialogDescription>
         </DialogHeader>
 
         {showTabs ? (
