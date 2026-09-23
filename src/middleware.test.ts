@@ -131,6 +131,14 @@ describe("middleware CSP", () => {
     expect(styleSrc).not.toContain("nonce-");
   });
 
+  it("allows the GitHub API the stars badge fetches from the browser", () => {
+    // The header badge calls api.github.com client-side, so 'self' alone
+    // blocks it under enforcement. Report-only mode hides this.
+    const csp = cspOf(middleware(createRequest("/dashboard", SESSION_COOKIE)));
+
+    expect(directive(csp, "connect-src")).toContain("https://api.github.com");
+  });
+
   it("points violations at the report endpoint", () => {
     const res = middleware(createRequest("/dashboard", SESSION_COOKIE));
 

@@ -58,9 +58,11 @@ export function buildCsp(nonce: string, { isDev, enforced }: CspOptions): string
     // next/font/google self-hosts Inter at build time, so no external origin.
     "font-src 'self'",
 
-    // GitHub is only ever called server-side via Octokit. Dev needs websockets
-    // for hot module replacement.
-    `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+    // The GitHub stars badge in the header fetches api.github.com straight from
+    // the browser (src/components/animate-ui/primitives/animate/github-stars.tsx),
+    // so 'self' alone silently breaks it. Everything else reaches GitHub
+    // server-side through Octokit. Dev needs websockets for hot reloading.
+    `connect-src 'self' https://api.github.com${isDev ? " ws: wss:" : ""}`,
 
     "object-src 'none'",
     "base-uri 'self'",
