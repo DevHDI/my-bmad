@@ -8,13 +8,18 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          String    @default("user")
+  role          UserRole  @default(user)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

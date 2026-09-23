@@ -10,10 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateUserRole } from "@/actions/admin-actions";
+import type { UserRole } from "@/lib/types";
 
 interface RoleManagerProps {
   userId: string;
-  currentRole: string;
+  currentRole: UserRole;
   currentUserId: string;
   userName?: string | null;
 }
@@ -29,7 +30,7 @@ export function RoleManager({
   const router = useRouter();
   const isSelf = userId === currentUserId;
 
-  function handleRoleChange(newRole: "user" | "admin") {
+  function handleRoleChange(newRole: UserRole) {
     setError(null);
     startTransition(async () => {
       const result = await updateUserRole({ userId, newRole });
