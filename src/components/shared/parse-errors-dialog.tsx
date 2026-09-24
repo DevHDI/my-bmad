@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -48,6 +49,10 @@ export function ParseErrorsDialog({ errors }: ParseErrorsDialogProps) {
             <AlertTriangle className="h-5 w-5" />
             Parsing Errors
           </DialogTitle>
+          <DialogDescription>
+            {errors.length} file(s) could not be parsed as BMAD content and are
+            excluded from this project&apos;s metrics.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 max-h-80 overflow-y-auto">
           {errors.map((entry) => (
