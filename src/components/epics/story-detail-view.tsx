@@ -7,21 +7,24 @@ import type { StoryDetail } from "@/lib/bmad/types";
 
 interface StoryDetailViewProps {
   story: StoryDetail;
+  showHeader?: boolean;
 }
 
-export function StoryDetailView({ story }: StoryDetailViewProps) {
+export function StoryDetailView({ story, showHeader = true }: StoryDetailViewProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-            Story {story.id}
-          </span>
-          <h3 className="text-lg font-semibold">{story.title}</h3>
+      {showHeader && (
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+              Story {story.id}
+            </span>
+            <h3 className="text-lg font-semibold">{story.title}</h3>
+          </div>
+          <StatusBadge status={story.status} />
         </div>
-        <StatusBadge status={story.status} />
-      </div>
+      )}
 
       {/* Description */}
       {story.description && (
