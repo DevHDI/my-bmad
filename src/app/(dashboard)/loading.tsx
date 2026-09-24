@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingStatus } from "@/components/shared/loading-status";
 
 export default function DashboardLoading() {
   return (
-    <div className="mesh-gradient min-h-full">
+    <LoadingStatus className="mesh-gradient min-h-full">
       <div className="space-y-8 pt-6 lg:pt-8">
         {/* Header skeleton */}
         <div>
@@ -16,6 +17,6 @@ export default function DashboardLoading() {
           ))}
         </div>
       </div>
-    </div>
+    </LoadingStatus>
   );
 }

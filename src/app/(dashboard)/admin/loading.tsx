@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingStatus } from "@/components/shared/loading-status";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function AdminLoading() {
   return (
-    <div className="space-y-6 p-2">
+    <LoadingStatus className="space-y-6 p-2">
       <div className="space-y-2">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-80" />
@@ -46,6 +47,6 @@ export default function AdminLoading() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </LoadingStatus>
   );
 }

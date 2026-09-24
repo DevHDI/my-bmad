@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingStatus } from "@/components/shared/loading-status";
 
 export default function RepoOverviewLoading() {
   return (
-    <div className="space-y-8">
+    <LoadingStatus className="space-y-8">
       {/* Header skeleton */}
       <div className="flex items-start justify-between">
         <div className="space-y-2">
@@ -75,6 +76,6 @@ export default function RepoOverviewLoading() {
           ))}
         </div>
       </div>
-    </div>
+    </LoadingStatus>
   );
 }
