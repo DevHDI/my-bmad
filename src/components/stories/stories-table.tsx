@@ -8,7 +8,8 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   DataGrid,
@@ -64,57 +65,69 @@ function TaskGauge({ completed, total }: { completed: number; total: number }) {
   );
 }
 
-const columns: ColumnDef<StoryDetail>[] = [
-  {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs text-muted-foreground">
-        S{row.getValue("id")}
-      </span>
-    ),
-    size: 80,
-    enableSorting: false,
-  },
-  {
-    accessorKey: "title",
-    header: ({ column }) => (
-      <DataGridColumnHeader column={column} title="Title" />
-    ),
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue("title")}</span>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <DataGridColumnHeader column={column} title="Status" />
-    ),
-    cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
-  },
-  {
-    accessorKey: "epicTitle",
-    header: ({ column }) => (
-      <DataGridColumnHeader column={column} title="Epic" />
-    ),
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.getValue("epicTitle") || "-"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "totalTasks",
-    header: "Tasks",
-    cell: ({ row }) => {
-      const story = row.original;
-      if (story.totalTasks === 0) return <span className="text-muted-foreground">-</span>;
-      return <TaskGauge completed={story.completedTasks} total={story.totalTasks} />;
+function storyHref(basePath: string, storyId: string) {
+  return `${basePath}/${encodeURIComponent(storyId)}`;
+}
+
+function getColumns(basePath: string): ColumnDef<StoryDetail>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          S{row.getValue("id")}
+        </span>
+      ),
+      size: 80,
+      enableSorting: false,
     },
-    size: 80,
-    enableSorting: false,
-  },
-];
+    {
+      accessorKey: "title",
+      header: ({ column }) => (
+        <DataGridColumnHeader column={column} title="Title" />
+      ),
+      cell: ({ row }) => (
+        <Link
+          href={storyHref(basePath, row.original.id)}
+          onClick={(e) => e.stopPropagation()}
+          className="font-medium hover:underline"
+        >
+          {row.getValue("title")}
+        </Link>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => (
+        <DataGridColumnHeader column={column} title="Status" />
+      ),
+      cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
+    },
+    {
+      accessorKey: "epicTitle",
+      header: ({ column }) => (
+        <DataGridColumnHeader column={column} title="Epic" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.getValue("epicTitle") || "-"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "totalTasks",
+      header: "Tasks",
+      cell: ({ row }) => {
+        const story = row.original;
+        if (story.totalTasks === 0) return <span className="text-muted-foreground">-</span>;
+        return <TaskGauge completed={story.completedTasks} total={story.totalTasks} />;
+      },
+      size: 80,
+      enableSorting: false,
+    },
+  ];
+}
 
 interface StoriesTableProps {
   stories: StoryDetail[];
@@ -124,6 +137,7 @@ export function StoriesTable({ stories }: StoriesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const router = useRouter();
   const pathname = usePathname();
+  const columns = useMemo(() => getColumns(pathname), [pathname]);
 
   const table = useReactTable({
     data: stories,
@@ -137,7 +151,7 @@ export function StoriesTable({ stories }: StoriesTableProps) {
   });
 
   const handleRowClick = (story: StoryDetail) => {
-    router.push(`${pathname}/${encodeURIComponent(story.id)}`);
+    router.push(storyHref(pathname, story.id));
   };
 
   return (

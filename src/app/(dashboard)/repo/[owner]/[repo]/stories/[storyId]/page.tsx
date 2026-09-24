@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/shared/status-badge";
 
 interface StoryPageProps {
   params: Promise<{ owner: string; repo: string; storyId: string }>;
@@ -34,21 +35,27 @@ export default async function StoryPage({ params }: StoryPageProps) {
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex items-center gap-4">
-        <Link href={storiesUrl}>
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <ChevronLeft className="h-4 w-4" />
+      <div className="flex items-start gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href={storiesUrl}>
+            <ChevronLeft className="size-4" />
             <span className="sr-only">Back to stories</span>
-          </Button>
-        </Link>
-        <div>
+          </Link>
+        </Button>
+        <div className="min-w-0 flex-1 space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">{story.title}</h1>
-          {story.epicTitle && (
-            <p className="text-muted-foreground mt-1">{story.epicTitle}</p>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+              Story {story.id}
+            </span>
+            <StatusBadge status={story.status} />
+            {story.epicTitle && (
+              <span className="text-sm text-muted-foreground">{story.epicTitle}</span>
+            )}
+          </div>
         </div>
       </div>
-      <StoryDetailView story={story} />
+      <StoryDetailView story={story} showHeader={false} />
     </div>
   );
 }
