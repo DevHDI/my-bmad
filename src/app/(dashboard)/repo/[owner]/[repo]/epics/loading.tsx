@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingStatus } from "@/components/shared/loading-status";
 
 export default function EpicsLoading() {
   return (
-    <div className="space-y-6 py-8">
+    <LoadingStatus className="space-y-6 py-8">
       {/* Title + progress ring */}
       <div className="flex items-center justify-between">
         <div className="space-y-2">
@@ -41,6 +42,6 @@ export default function EpicsLoading() {
           </div>
         ))}
       </div>
-    </div>
+    </LoadingStatus>
   );
 }

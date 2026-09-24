@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingStatus } from "@/components/shared/loading-status";
 
 export default function StoriesLoading() {
   return (
-    <div className="space-y-6 py-8">
+    <LoadingStatus className="space-y-6 py-8">
       {/* Title + subtitle */}
       <div className="space-y-2">
         <Skeleton className="h-8 w-28" />
@@ -43,6 +44,6 @@ export default function StoriesLoading() {
           </div>
         ))}
       </div>
-    </div>
+    </LoadingStatus>
   );
 }
