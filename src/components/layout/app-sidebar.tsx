@@ -37,11 +37,9 @@ import { AddRepoDialog } from "@/components/layout/add-repo-dialog";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { RepoConfig } from "@/lib/types";
 
-const SUPER_ADMIN_EMAIL = "dev@dahmani.fr";
-
 interface AppSidebarProps {
   repos: RepoConfig[];
-  userEmail?: string;
+  showAdmin?: boolean;
   localFsEnabled?: boolean;
   githubEnabled?: boolean;
 }
@@ -53,7 +51,7 @@ const projectTabs = [
   { label: "Library", segment: "docs", icon: FileText },
 ];
 
-export function AppSidebar({ repos, userEmail, localFsEnabled, githubEnabled }: AppSidebarProps) {
+export function AppSidebar({ repos, showAdmin, localFsEnabled, githubEnabled }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -189,7 +187,7 @@ export function AppSidebar({ repos, userEmail, localFsEnabled, githubEnabled }: 
               </Button>
             }
           />
-          {userEmail === SUPER_ADMIN_EMAIL && (
+          {showAdmin && (
             <Button variant="outline" size="lg" className="w-full" asChild>
               <Link href="/admin">
                 <Shield className="h-4 w-4" aria-hidden="true" />

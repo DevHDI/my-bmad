@@ -134,6 +134,9 @@ After creating your account, you can set it back to `false`.
 pnpm db:create-admin --email admin@example.com --password your_password --name Admin
 ```
 
+To access the admin panel (`/admin`), set `SUPER_ADMIN_EMAIL` to your account's email in `.env`.
+Only that account sees the **Admin** button in the sidebar.
+
 ## 7. Start the development server
 
 ```bash
@@ -158,6 +161,7 @@ Open [http://localhost:3002](http://localhost:3002) — log in and start importi
 | `GITHUB_CLIENT_SECRET` | No | — | GitHub OAuth App Client Secret. |
 | `GITHUB_PAT` | No | — | Personal Access Token for higher GitHub API rate limits (60 → 5,000 req/h). |
 | `ALLOW_REGISTRATION` | No | `false` | Set to `true` to allow new users to sign up via email/password. |
+| `SUPER_ADMIN_EMAIL` | No | — | Email of the only account allowed to open `/admin` (users list and usage metrics). Unset = admin panel disabled. |
 | `ENABLE_LOCAL_FS` | No | `false` | Set to `true` to enable [local folder imports](./LOCAL_FOLDER.md). |
 
 > The `scripts/setup.sh` script auto-generates `BETTER_AUTH_SECRET` and `REVALIDATE_SECRET` for you.

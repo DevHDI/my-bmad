@@ -18,14 +18,12 @@ import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { RoleManager } from "@/components/admin/role-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getInitials } from "@/lib/utils";
 import type { AdminUser } from "@/actions/admin-actions";
 
 interface UsersTableProps {
   users: AdminUser[];
-  currentUserId: string;
 }
 
 function formatDate(date: string | Date): string {
@@ -36,98 +34,77 @@ function formatDate(date: string | Date): string {
   });
 }
 
-function makeColumns(currentUserId: string): ColumnDef<AdminUser>[] {
-  return [
-    {
-      accessorKey: "name",
-      header: ({ column }) => (
-        <DataGridColumnHeader column={column} title="User" />
-      ),
-      cell: ({ row }) => {
-        const user = row.original;
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar>
-              {user.image && (
-                <AvatarImage src={user.image} alt={user.name ?? user.email} />
-              )}
-              <AvatarFallback>
-                {getInitials(user.name, user.email[0]?.toUpperCase() ?? "?")}
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-medium">
-              {user.name ?? "Unnamed"}
-            </span>
-          </div>
-        );
-      },
-      filterFn: (row, _columnId, filterValue: string) => {
-        const q = filterValue.toLowerCase();
-        const user = row.original;
-        return (
-          (user.name?.toLowerCase().includes(q) ?? false) ||
-          user.email.toLowerCase().includes(q)
-        );
-      },
+const columns: ColumnDef<AdminUser>[] = [
+  {
+    accessorKey: "name",
+    header: ({ column }) => (
+      <DataGridColumnHeader column={column} title="User" />
+    ),
+    cell: ({ row }) => {
+      const user = row.original;
+      return (
+        <div className="flex items-center gap-3">
+          <Avatar>
+            {user.image && (
+              <AvatarImage src={user.image} alt={user.name ?? user.email} />
+            )}
+            <AvatarFallback>
+              {getInitials(user.name, user.email[0]?.toUpperCase() ?? "?")}
+            </AvatarFallback>
+          </Avatar>
+          <span className="font-medium">
+            {user.name ?? "Unnamed"}
+          </span>
+        </div>
+      );
     },
-    {
-      accessorKey: "email",
-      header: ({ column }) => (
-        <DataGridColumnHeader column={column} title="Email" />
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("email")}</span>
-      ),
+    filterFn: (row, _columnId, filterValue: string) => {
+      const q = filterValue.toLowerCase();
+      const user = row.original;
+      return (
+        (user.name?.toLowerCase().includes(q) ?? false) ||
+        user.email.toLowerCase().includes(q)
+      );
     },
-    {
-      accessorKey: "role",
-      header: ({ column }) => (
-        <DataGridColumnHeader column={column} title="Role" />
-      ),
-      cell: ({ row }) => {
-        const user = row.original;
-        return (
-          <RoleManager
-            userId={user.id}
-            currentRole={user.role}
-            currentUserId={currentUserId}
-            userName={user.name}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "_count.repos",
-      header: "Repos",
-      cell: ({ row }) => (
-        <span className="text-center text-muted-foreground">
-          {row.original._count.repos}
-        </span>
-      ),
-      enableSorting: false,
-    },
-    {
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <DataGridColumnHeader column={column} title="Joined" />
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {formatDate(row.getValue("createdAt"))}
-        </span>
-      ),
-      sortingFn: "datetime",
-    },
-  ];
-}
+  },
+  {
+    accessorKey: "email",
+    header: ({ column }) => (
+      <DataGridColumnHeader column={column} title="Email" />
+    ),
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{row.getValue("email")}</span>
+    ),
+  },
+  {
+    accessorKey: "_count.repos",
+    header: "Repos",
+    cell: ({ row }) => (
+      <span className="text-center text-muted-foreground">
+        {row.original._count.repos}
+      </span>
+    ),
+    enableSorting: false,
+  },
+  {
+    accessorKey: "createdAt",
+    header: ({ column }) => (
+      <DataGridColumnHeader column={column} title="Joined" />
+    ),
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {formatDate(row.getValue("createdAt"))}
+      </span>
+    ),
+    sortingFn: "datetime",
+  },
+];
 
-export function UsersTable({ users, currentUserId }: UsersTableProps) {
+export function UsersTable({ users }: UsersTableProps) {
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);
-
-  const columns = useMemo(() => makeColumns(currentUserId), [currentUserId]);
 
   const columnFilters = useMemo(
     () => (search ? [{ id: "name", value: search }] : []),

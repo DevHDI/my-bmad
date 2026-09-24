@@ -34,7 +34,7 @@ MyBMAD Dashboard connects to your GitHub repositories (or local folders), reads 
 - Track sprint status and velocity metrics
 - Repo settings modal to switch branches directly from the UI
 - Email/password authentication and optional GitHub OAuth login
-- Multi-user support with role management (admin / user)
+- Multi-user support with an admin panel for the instance owner (`SUPER_ADMIN_EMAIL`)
 - Self-hostable with Docker and automatic TLS via Traefik
 
 ---
@@ -100,7 +100,7 @@ my-bmad/
 │   │   ├── (dashboard)/        # Authenticated dashboard pages
 │   │   │   ├── page.tsx        # Home — projects overview
 │   │   │   ├── repo/           # Per-repository views (epics, stories, docs)
-│   │   │   ├── admin/          # Admin panel (user management)
+│   │   │   ├── admin/          # Admin panel (users list, usage metrics)
 │   │   │   └── profile/        # User profile
 │   │   ├── api/
 │   │   │   ├── auth/           # Better Auth handler

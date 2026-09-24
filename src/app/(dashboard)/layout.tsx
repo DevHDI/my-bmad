@@ -8,6 +8,7 @@ import {
   getAuthenticatedRepos,
 } from "@/lib/db/helpers";
 import { getGitHubToken } from "@/lib/github/client";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export default async function DashboardLayout({
   children,
@@ -31,7 +32,7 @@ export default async function DashboardLayout({
       <SidebarProvider>
         <AppSidebar
           repos={repos}
-          userEmail={session.email}
+          showAdmin={isSuperAdmin(session.email)}
           localFsEnabled={localFsEnabled}
           githubEnabled={hasGitHubToken}
         />
