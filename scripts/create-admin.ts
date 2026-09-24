@@ -77,6 +77,7 @@ async function main() {
   console.log(`  Name:  ${name}`);
   console.log(`  Email: ${email}`);
   console.log(`  Role:  admin`);
+  console.log(`Set SUPER_ADMIN_EMAIL=${email} in .env to access the admin panel.`);
 
   await prisma.$disconnect();
 }

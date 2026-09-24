@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getAuthenticatedSession } from "@/lib/db/helpers";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 import { getUsers, getUsageMetrics } from "@/actions/admin-actions";
 import { UsageMetrics } from "@/components/admin/usage-metrics";
 import { UsersTable } from "@/components/admin/users-table";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function AdminPage() {
   const session = await getAuthenticatedSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session || !isSuperAdmin(session.email)) notFound();
 
   const [usersResult, metricsResult] = await Promise.all([
     getUsers(),
@@ -44,7 +45,7 @@ export default async function AdminPage() {
       )}
 
       {usersResult.success ? (
-        <UsersTable users={usersResult.data} currentUserId={session.userId} />
+        <UsersTable users={usersResult.data} />
       ) : (
         <AlertBanner variant="error" title={`Failed to load users: ${usersResult.error}`} />
       )}

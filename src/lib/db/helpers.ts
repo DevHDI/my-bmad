@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { auth } from "@/lib/auth/auth";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db/client";
@@ -19,14 +20,14 @@ export const getAuthenticatedSession = cache(
 );
 
 /**
- * Require admin role. Returns ActionResult with error if not admin.
+ * Require the instance super admin (SUPER_ADMIN_EMAIL). Returns ActionResult with error otherwise.
  */
 export async function requireAdmin(): Promise<ActionResult<{ userId: string }>> {
   const session = await getAuthenticatedSession();
   if (!session) {
     return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
   }
-  if (session.role !== "admin") {
+  if (!isSuperAdmin(session.email)) {
     return { success: false, error: "Access denied", code: "FORBIDDEN" };
   }
   return { success: true, data: { userId: session.userId } };
