@@ -180,6 +180,7 @@ export function LoginForm({ githubEnabled, registrationEnabled }: LoginFormProps
                 authClient.signIn.social({
                   provider: "github",
                   callbackURL: "/",
+                  errorCallbackURL: "/login",
                 });
               }}
             >
