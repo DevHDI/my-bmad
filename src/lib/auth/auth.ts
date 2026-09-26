@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { createAuthMiddleware, APIError } from "better-auth/api";
+import { createAuthMiddleware } from "better-auth/api";
 import { prisma } from "@/lib/db/client";
+import { assertRegistrationAllowed } from "@/lib/auth/registration";
 
 if (process.env.NEXT_PHASE !== "phase-production-build") {
   if (!process.env.BETTER_AUTH_SECRET) {
@@ -44,13 +45,21 @@ export const auth = betterAuth({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-up/email") {
-        if (process.env.ALLOW_REGISTRATION !== "true") {
-          throw new APIError("FORBIDDEN", {
-            message: "Registration is disabled",
-          });
-        }
+        assertRegistrationAllowed({ email: ctx.body?.email, headers: ctx.headers });
       }
     }),
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, ctx) => {
+          assertRegistrationAllowed({
+            email: user.email,
+            headers: ctx?.headers ?? ctx?.request?.headers,
+          });
+        },
+      },
+    },
   },
 });
 
