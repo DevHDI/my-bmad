@@ -18,14 +18,13 @@ function flattenFiles(nodes: FileTreeNode[]): FileTreeNode[] {
 
 interface KeyArtifactsCardProps {
   planningArtifacts: FileTreeNode[];
-  owner: string;
-  repo: string;
+  /** Project root URL (e.g. `/repo/owner/repo`). */
+  basePath: string;
 }
 
 export function KeyArtifactsCard({
   planningArtifacts,
-  owner,
-  repo,
+  basePath,
 }: KeyArtifactsCardProps) {
   const files = flattenFiles(planningArtifacts);
 
@@ -41,7 +40,7 @@ export function KeyArtifactsCard({
         {files.map((file) => (
             <Link
               key={file.path}
-              href={`/repo/${owner}/${repo}/docs?file=${encodeURIComponent(file.path)}`}
+              href={`${basePath}/docs?file=${encodeURIComponent(file.path)}`}
               className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm hover:bg-accent transition-colors duration-300"
             >
               {renderFileIcon(file.name, "h-4 w-4 shrink-0 text-muted-foreground")}
