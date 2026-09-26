@@ -27,6 +27,23 @@ import yamlLang from "highlight.js/lib/languages/yaml";
 import jsonLang from "highlight.js/lib/languages/json";
 import type { FileTreeNode, ParsedBmadFile } from "@/lib/bmad/types";
 
+/**
+ * Where document contents are loaded from. Extensible union: new kinds
+ * (e.g. a shared snapshot) add a branch in `loadParsedFile`.
+ */
+export type DocsSource = { kind: "owner"; owner: string; repo: string };
+
+export function loadParsedFile(source: DocsSource, path: string) {
+  switch (source.kind) {
+    case "owner":
+      return fetchParsedFileContent({
+        owner: source.owner,
+        name: source.repo,
+        path,
+      });
+  }
+}
+
 hljs.registerLanguage("yaml", yamlLang);
 hljs.registerLanguage("json", jsonLang);
 
@@ -101,16 +118,21 @@ function treeContainsPath(nodes: FileTreeNode[], path: string): boolean {
 function FilePanel({
   fileTree,
   secondaryTree,
-  owner,
-  repo,
+  source,
   initialSelectedFile,
 }: {
   fileTree: FileTreeNode[];
   secondaryTree?: FileTreeNode[];
-  owner: string;
-  repo: string;
+  source: DocsSource;
   initialSelectedFile?: string;
 }) {
+  // Key the effect on the source value, not its object identity, so a
+  // re-rendered parent does not reload the selected file.
+  const sourceKey = JSON.stringify(source);
+  const stableSource = useMemo<DocsSource>(
+    () => JSON.parse(sourceKey) as DocsSource,
+    [sourceKey],
+  );
   const [selectedPath, setSelectedPath] = useState<string | null>(
     initialSelectedFile ?? null,
   );
@@ -129,7 +151,7 @@ function FilePanel({
 
     let cancelled = false;
 
-    fetchParsedFileContent({ owner, name: repo, path: selectedPath })
+    loadParsedFile(stableSource, selectedPath)
       .then((result) => {
         if (cancelled) return;
         if (result.success) {
@@ -151,7 +173,7 @@ function FilePanel({
     return () => {
       cancelled = true;
     };
-  }, [selectedPath, owner, repo]);
+  }, [selectedPath, stableSource]);
 
   const hasSecondary = secondaryTree && secondaryTree.length > 0;
   const initialInSecondary =
@@ -300,19 +322,21 @@ interface DocsBrowserProps {
   fileTree: FileTreeNode[];
   docsTree: FileTreeNode[];
   bmadCoreTree: FileTreeNode[];
-  owner: string;
-  repo: string;
+  source: DocsSource;
+  /** Show the BMAD core (`_bmad/`) tree. Defaults to true. */
+  showBmadCore?: boolean;
   initialSelectedFile?: string;
 }
 
 export function DocsBrowser({
   fileTree,
   docsTree,
-  bmadCoreTree,
-  owner,
-  repo,
+  bmadCoreTree: rawBmadCoreTree,
+  source,
+  showBmadCore = true,
   initialSelectedFile,
 }: DocsBrowserProps) {
+  const bmadCoreTree = showBmadCore ? rawBmadCoreTree : [];
   const hasDocs = docsTree.length > 0;
   const hasBmad = fileTree.length > 0 || bmadCoreTree.length > 0;
 
@@ -322,8 +346,7 @@ export function DocsBrowser({
       <FilePanel
         fileTree={fileTree}
         secondaryTree={bmadCoreTree.length > 0 ? bmadCoreTree : undefined}
-        owner={owner}
-        repo={repo}
+        source={source}
         initialSelectedFile={initialSelectedFile}
       />
     );
@@ -333,8 +356,7 @@ export function DocsBrowser({
     return (
       <FilePanel
         fileTree={docsTree}
-        owner={owner}
-        repo={repo}
+        source={source}
         initialSelectedFile={initialSelectedFile}
       />
     );
@@ -363,8 +385,7 @@ export function DocsBrowser({
         <FilePanel
           fileTree={fileTree}
           secondaryTree={bmadCoreTree.length > 0 ? bmadCoreTree : undefined}
-          owner={owner}
-          repo={repo}
+          source={source}
           initialSelectedFile={initialInDocs ? undefined : initialSelectedFile}
         />
       </TabsContent>
@@ -372,8 +393,7 @@ export function DocsBrowser({
       <TabsContent value="docs" className="mt-4">
         <FilePanel
           fileTree={docsTree}
-          owner={owner}
-          repo={repo}
+          source={source}
           initialSelectedFile={initialInDocs ? initialSelectedFile : undefined}
         />
       </TabsContent>
