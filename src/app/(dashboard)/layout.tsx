@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/helpers";
 import { getGitHubToken } from "@/lib/github/client";
 import { isSuperAdmin } from "@/lib/auth/super-admin";
+import { DomainMoveBanner } from "@/components/shared/domain-move-banner";
 
 export default async function DashboardLayout({
   children,
@@ -37,6 +38,7 @@ export default async function DashboardLayout({
           githubEnabled={hasGitHubToken}
         />
         <SidebarInset>
+          <DomainMoveBanner className="mt-3.75 mr-3.75 rounded-lg" />
           <AppHeader />
           <div className="flex-1 pt-4 pr-4 pb-4">{children}</div>
         </SidebarInset>
