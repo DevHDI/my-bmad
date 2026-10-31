@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { getCachedBmadProject } from "@/lib/bmad/cached-project";
 import { getGitHubToken } from "@/lib/github/client";
-import { StoriesView } from "@/components/stories/stories-view";
+import { ProjectStoriesView } from "@/components/project-views/project-stories-view";
 import {
   getAuthenticatedUserId,
   getAuthenticatedRepoConfig,
@@ -25,15 +25,10 @@ export default async function StoriesPage({ params }: StoriesPageProps) {
   if (!project) return notFound();
 
   return (
-    <div className="space-y-8 pb-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Stories</h1>
-        <p className="text-muted-foreground mt-1">
-          {project.stories.length} stories across {project.epics.length}{" "}
-          epics
-        </p>
-      </div>
-      <StoriesView stories={project.stories} epics={project.epics} />
-    </div>
+    <ProjectStoriesView
+      project={project}
+      basePath={`/repo/${owner}/${repoName}`}
+      mode="owner"
+    />
   );
 }

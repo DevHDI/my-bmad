@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { DocsBrowser } from "@/components/docs/docs-browser";
+import { ProjectDocsView } from "@/components/project-views/project-docs-view";
 import { fetchBmadFiles } from "@/actions/repo-actions";
 import {
   getAuthenticatedUserId,
@@ -24,42 +24,25 @@ export default async function DocsPage({
   if (!repoConfig) return notFound();
 
   const result = await fetchBmadFiles({ owner, name: repoName });
+  const viewProps = {
+    basePath: `/repo/${owner}/${repoName}`,
+    mode: "owner" as const,
+    source: { kind: "owner" as const, owner, repo: repoName },
+    initialSelectedFile: initialFile,
+  };
 
   if (!result.success) {
-    return (
-      <div className="space-y-8 pb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Library</h1>
-          <p className="text-muted-foreground mt-1">
-            Browse the project files
-          </p>
-        </div>
-        <div
-          className="flex items-center justify-center h-64 text-muted-foreground"
-          role="alert"
-        >
-          <p>{result.error}</p>
-        </div>
-      </div>
-    );
+    return <ProjectDocsView {...viewProps} error={result.error} />;
   }
 
   return (
-    <div className="space-y-8 pb-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Library</h1>
-        <p className="text-muted-foreground mt-1">
-          Browse the project files
-        </p>
-      </div>
-      <DocsBrowser
-        fileTree={result.data.fileTree}
-        docsTree={result.data.docsTree}
-        bmadCoreTree={result.data.bmadCoreTree}
-        owner={owner}
-        repo={repoName}
-        initialSelectedFile={initialFile}
-      />
-    </div>
+    <ProjectDocsView
+      {...viewProps}
+      files={{
+        fileTree: result.data.fileTree,
+        docsTree: result.data.docsTree,
+        bmadCoreTree: result.data.bmadCoreTree,
+      }}
+    />
   );
 }

@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { getCachedBmadProject } from "@/lib/bmad/cached-project";
 import { getGitHubToken } from "@/lib/github/client";
-import { EpicsBrowser } from "@/components/epics/epics-browser";
+import { ProjectEpicsView } from "@/components/project-views/project-epics-view";
 import {
   getAuthenticatedUserId,
   getAuthenticatedRepoConfig,
@@ -24,20 +24,11 @@ export default async function EpicsPage({ params }: EpicsPageProps) {
   const project = await getCachedBmadProject(repoConfig, token, userId);
   if (!project) return notFound();
 
-  const totalEpicProgress = project.epics.length > 0
-    ? Math.round(
-        project.epics.reduce((sum, e) => sum + e.progressPercent, 0) /
-          project.epics.length
-      )
-    : 0;
-
   return (
-    <EpicsBrowser
-      epics={project.epics}
-      stories={project.stories}
-      totalEpics={project.epics.length}
-      totalStories={project.totalStories}
-      totalEpicProgress={totalEpicProgress}
+    <ProjectEpicsView
+      project={project}
+      basePath={`/repo/${owner}/${repoName}`}
+      mode="owner"
     />
   );
 }
