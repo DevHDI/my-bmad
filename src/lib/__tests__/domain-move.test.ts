@@ -53,4 +53,10 @@ describe("getDomainMoveNotice", () => {
     vi.stubEnv("DOMAIN_MOVE_DATE", "14/11/2026");
     expect(getDomainMoveNotice("old.example.com")?.date).toBeNull();
   });
+
+  it("rejects an impossible calendar date instead of normalizing it", () => {
+    vi.stubEnv("DOMAIN_MOVE_URL", "https://new.example.com");
+    vi.stubEnv("DOMAIN_MOVE_DATE", "2026-02-30");
+    expect(getDomainMoveNotice("old.example.com")?.date).toBeNull();
+  });
 });

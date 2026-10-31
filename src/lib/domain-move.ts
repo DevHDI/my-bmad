@@ -43,8 +43,11 @@ function formatMoveDate(raw: string | undefined): string | null {
   const value = raw?.trim();
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
 
+  // Date normalizes impossible days (2026-02-30 becomes March 2), so reject
+  // any value that does not survive the round trip.
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return null;
+  if (date.toISOString().slice(0, 10) !== value) return null;
 
   return new Intl.DateTimeFormat("en-US", {
     month: "long",
