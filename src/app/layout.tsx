@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DomainMoveBanner } from "@/components/shared/domain-move-banner";
+import { getDomainMoveNotice } from "@/lib/domain-move";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +24,11 @@ export default async function RootLayout({
 }) {
   // next-themes renders its own inline anti-flash script, which Next.js does
   // not nonce for us. Without this it is the one script the CSP rejects.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  const domainMove = getDomainMoveNotice(
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"),
+  );
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -33,6 +39,7 @@ export default async function RootLayout({
           enableSystem
           nonce={nonce}
         >
+          {domainMove && <DomainMoveBanner notice={domainMove} />}
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
       </body>

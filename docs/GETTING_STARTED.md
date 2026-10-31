@@ -163,5 +163,7 @@ Open [http://localhost:3002](http://localhost:3002) — log in and start importi
 | `ALLOW_REGISTRATION` | No | `false` | Set to `true` to allow new users to sign up via email/password. |
 | `SUPER_ADMIN_EMAIL` | No | — | Email of the only account allowed to open `/admin` (users list and usage metrics). Unset = admin panel disabled. |
 | `ENABLE_LOCAL_FS` | No | `false` | Set to `true` to enable [local folder imports](./LOCAL_FOLDER.md). |
+| `DOMAIN_MOVE_URL` | No | — | New address of this instance. When set, a banner announcing the move is shown to visitors on any other address. |
+| `DOMAIN_MOVE_DATE` | No | — | Switch date shown in the domain move banner, as `YYYY-MM-DD`. |
 
 > The `scripts/setup.sh` script auto-generates `BETTER_AUTH_SECRET` and `REVALIDATE_SECRET` for you.

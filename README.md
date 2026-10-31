@@ -1,5 +1,7 @@
 # MyBMAD Dashboard
 
+> **📢 MyBMAD is moving to [mybmad.hhm.fr](https://mybmad.hhm.fr).** The hosted instance at `mybmad.hichem.cloud` will redirect to the new address until November 25, 2026, then stop working. Update your bookmarks and sign in with GitHub once on the new address — your account and projects stay the same.
+
 A web dashboard - https://mybmad.hichem.cloud/ - to visualize and track [BMAD (Breakthrough Method of Agile AI-Driven Development)](https://github.com/bmad-method/bmad-method) projects from your GitHub repositories — or directly from local folders.
 
 > **License:** MIT — see [LICENSE](./LICENSE) for details.
